@@ -58,7 +58,7 @@ class SFVec:
         self.val[3] = val
 
 
-class SFVec:
+'''class SFVec:
     # TODO: sfvec to sfvec assignment, same for SFString
     def __init__(self, val):
         self.val = val
@@ -113,11 +113,12 @@ class SFVec:
     @o.setter
     def o(self, val):
         self.val[3] = val
+'''
 
 
 class SFString:
     def __init__(self, val, istitle=False):
-        if type(val) == type(''):
+        if type(val) is type(''):
             self.val = val
         else:
             self.val = str(val)
@@ -132,21 +133,31 @@ class SFString:
     def no_quotes(self):
         return f'{self.val}'.replace('.', '_')
 
+    def yes_quotes(self):
+        return f'"{self.val}"'.replace('.', '_')
+
 
 class Celluvoyer:
-    def __init__(self, translation, rotation, controller, filename, name):
+    def __init__(self, translation, rotation, controller: SFString, filename: SFString, name: SFString,
+                 wheel_graphic_path: SFString, chassis_graphic_path: SFString):
         self.translation = translation
         self.rotation = rotation
 
         self._controller = controller
         self.name = name
         self._filename = filename
-        self.wheel_graphic_path = r'"Celluvoyer_wheel_0_1.dae"'
+
+        if wheel_graphic_path is None:
+            self.wheel_graphic_path = r'"Celluvoyer_wheel_0_1.dae"'
+        else:
+            self.wheel_graphic_path = wheel_graphic_path
         # r'"C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\worlds\Celluvoyer_wheel_0_1.dae"'
-        self.chasis_graphic_path = r'"Celluvoyer_0_1.dae"'
+        if chassis_graphic_path is None:
+            self.chasis_graphic_path = r'"Celluvoyer_0_1.dae"'
+        else:
+            self.chasis_graphic_path = chassis_graphic_path
         # r'"C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\worlds\Celluvoyer_0_1.dae"'
         # {self.name.no_quotes()}
-        print(f"The controller inside cell: {self.controller}")
 
         self.core_string = f"""DEF celluvoyer Robot {{
       translation {self.translation}
@@ -181,7 +192,7 @@ class Celluvoyer:
                       }}
                       CadShape {{
                         url [
-                      {self.wheel_graphic_path}
+                      {self.wheel_graphic_path.yes_quotes()}
                     ]
                       }}
                     ]
@@ -224,7 +235,7 @@ class Celluvoyer:
                       }}
                       CadShape {{
                         url [
-                      {self.wheel_graphic_path}
+                      {self.wheel_graphic_path.yes_quotes()}
                     ]
                       }}
                     ]
@@ -267,7 +278,7 @@ class Celluvoyer:
                       }}
                       CadShape {{
                         url [
-                      {self.wheel_graphic_path}
+                      {self.wheel_graphic_path.yes_quotes()}
                     ]
                       }}
                     ]
@@ -284,7 +295,7 @@ class Celluvoyer:
           children [
             CadShape {{
               url [
-            {self.chasis_graphic_path}
+            {self.chasis_graphic_path.yes_quotes()}
           ]
             }}
           ]
@@ -302,11 +313,11 @@ class Celluvoyer:
           castShadows TRUE
         }}
       ]
-      name {self.name}
+      name {self.name.no_quotes()}
       boundingObject USE hexagon_shape
       physics Physics {{
       }}
-      controller {self.controller}
+      controller {self.controller.yes_quotes()}
     }}"""
 
     def __str__(self):
@@ -318,7 +329,7 @@ class Celluvoyer:
 
     @controller.setter
     def controller(self, val):
-        if type(val) == type(""):
+        if type(val) is type(""):
             self._controller = SFString(val)
         else:
             self._controller = val
@@ -346,16 +357,12 @@ class Field:
 
 
 class Header:
-    def __init__(self, filename, fields=None, bodies=None):
+    def __init__(self, filename, bodies=None):
         self.filename = filename
-        self.fields = fields
         self.bodies = bodies
-        if not self.fields: self.fields = []
-        if not self.fields: self.bodies = []
+        if not self.bodies: self.bodies = []
         field_str = ''
         body_str = ''
-        for i in self.fields:
-            field_str += str(i)
         for i in self.bodies:
             body_str += str(i) + '\n'
 
@@ -401,6 +408,7 @@ class Robot:
             dimensions = [1, 1]
         else:
             assert dimensions[0] >= 1 and dimensions[1] >= 1, "Both dimensions must be more than one at the same time"
+
         self._translation = SFVec(translation)
         self._rotation = SFVec(rotation)
         self.name = name
@@ -421,6 +429,9 @@ class Robot:
         self.y_cell_dist = 0.152
         self.translation_list = []
         self.name_list = []
+        self._default_values = {}
+        self.set_default_value()
+
 
     def __str__(self):
         return str(self.header)
@@ -462,7 +473,7 @@ class Robot:
         self.create_fields()
         self.create_cells(dimensions=self.dimensions)
 
-        self.header = Header(self.filename, self.fields, self.cells)
+        self.header = Header(self.filename, self.cells)
 
     def create_file(self):
         self.update_data()
@@ -471,7 +482,7 @@ class Robot:
         with open(self.write_filename, 'w') as f:
             f.write(str(self))
 
-    def start_controller(self, x, y):
+    def start_controller(self, x, y, o):
         # todo:test later
         self.webots_controller_exe_file = "\msys64\mingw64\bin\webots-controller.exe"
         self.controller_launcher_file_location = os.path.join(os.environ['WEBOTS_HOME'],
@@ -480,6 +491,23 @@ class Robot:
         self.controller_file_location = r"C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\cell_controller_0_2\cell_controller_0_2.py"
         self.launch_controller_string = fr'{self.controller_launcher_file_location} {self.options} '
         # fr'"%WEBOTS_HOME%\msys64\mingw64\bin\webots-controller.exe" --robot-name=cell_1_1 "C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\cell_controller_0_2\cell_controller_0_2.py"'
+
+    def set_default_value(self):
+        self._default_values['filename'] = self.filename
+        self._default_values['controller'] = '<extern>'
+        self._default_values['location'] = {'x': self.translation.x, 'y': self.translation.y, 'z': self.translation.z}
+        self._default_values['rotation'] = {'x': self.rotation.x, 'y': self.rotation.y, 'z': self.rotation.z,
+                                            'o': self.rotation.o}
+        self._default_values['dimensions'] = {'x': self.dimensions.x, 'y': self.dimensions.y}
+        self._default_values['graphics'] = {'chassis': SFString('Celluvoyer_0_1.dae'),
+                                            'wheel': SFString('Celluvoyer_wheel_0_1.dae')}
+        self._default_values['cwd'] = r'C:\Users\toupa\Desktop\ESE - S1\PFE\Simulation_files'
+
+        # TODO: save the state of the last inputted filename
+
+    @property
+    def default_values(self):
+        return self._default_values
 
     @property
     def filename(self):
@@ -514,7 +542,10 @@ class Robot:
 
     @rotation.setter
     def rotation(self, val):
-        self._rotation = SFString(val)
+        if type(val) is type(''):
+            self._rotation = SFString(val)
+        else:
+            self._rotation = val
 
     @property
     def dimensions(self):
