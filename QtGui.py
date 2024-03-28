@@ -65,7 +65,6 @@ class Table_preview(QWidget):
     def __init__(self, *args):
         super().__init__(*args)
         self.parent = self.parent()
-
         self.background_item = None
         self.view = QGraphicsView()
         self.scene = QGraphicsScene()
@@ -85,6 +84,7 @@ class Table_preview(QWidget):
         self.last_point = None
         self.drawing = False
 
+
     def setup_buttons(self):
         layout = QVBoxLayout(self)
         layout.addWidget(self.view)
@@ -92,13 +92,17 @@ class Table_preview(QWidget):
         button_widget = QWidget()
 
         self.clear_drawing = QPushButton('Clear')
-        self.calculate_path = QPushButton('Calculate')
+        self.calculate = QPushButton('Calculate')
         self.launch = QPushButton('Launch')
+
+        self.calculate.setObjectName('calculate_button')
+        self.launch.setObjectName('launch_button')
 
         self.clear_drawing.clicked.connect(self.update_foreground_scene)
 
+
         layout_button.addWidget(self.clear_drawing)
-        layout_button.addWidget(self.calculate_path)
+        layout_button.addWidget(self.calculate)
         layout_button.addWidget(self.launch)
         button_widget.setLayout(layout_button)
         if self.parent.objectName() == 'preview_mode':
@@ -107,6 +111,13 @@ class Table_preview(QWidget):
             self.view.viewport().installEventFilter(self)
             layout.addWidget(button_widget)
         self.setLayout(layout)
+
+    def calculate_path(self):
+        pass
+
+    def launch_controller(self):
+        self.main_window.robot.launch_controller_string(1, 1, 0)
+        pass
 
     def setup_background_scene(self):  # TODO: implement to be called from MainUi using dimension_x inputs
         # Clear items from the background scene
@@ -163,15 +174,18 @@ class Table_preview(QWidget):
         self.scene.addItem(self.background_item)
         self.view.setScene(self.scene)
 
+
 class MainUi(QMainWindow):
     def __init__(self, robot: Robot):
         super(MainUi, self).__init__()
         ui_filename = r'C:\Users\toupa\Desktop\ESE - S1\PFE\Simulation_files\ui_files\window_0_1.ui'
         loadUi(ui_filename, self)
+        self.resize(1366, 768)
         self.robot = robot
         self._default_values = self.robot.default_values
         self.stackedWidget_3000: QStackedWidget = self.findChild(QStackedWidget, "stackedWidget_3000")
         self.stackedWidget_3000.setCurrentIndex(1)
+
         self.initialize()
 
     def initialize(self):
@@ -273,7 +287,10 @@ class MainUi(QMainWindow):
         # TODO: set table tran, rot, dimen .... default
 
     def set_table_preview(self):
+        self.calculate_button = self.findChild(QPushButton, 'calculate_button')
+        self.launch_button = self.findChild(QPushButton, 'launch_button')
 
+        self.launch_button.clicked.connect(lambda: self.robot.start_controller(0, 0, 1))
         # elipse = self.scene.addEllipse(20, 20, 200, 200, self.pen, self.brush_blue)
         # poly = QPolygonF()
         # poly = self.get_hexagon(0, 0, 20)

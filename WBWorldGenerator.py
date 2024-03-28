@@ -1,4 +1,4 @@
-import os
+import os, subprocess, asyncio
 
 
 class SFVec:
@@ -56,64 +56,6 @@ class SFVec:
     @o.setter
     def o(self, val):
         self.val[3] = val
-
-
-'''class SFVec:
-    # TODO: sfvec to sfvec assignment, same for SFString
-    def __init__(self, val):
-        self.val = val
-
-    def __str__(self):
-        self.val_str = ''
-        if type(self.val) is type([]):
-            for i in self.val:
-                if type(i) is type(''):
-                    self.val_str += f'"{i}"' + " "
-                else:
-                    self.val_str += str(i) + " "
-            self.val_str += ''
-        return self.val_str
-
-    def __getitem__(self, item):
-        assert type(item) is type(1)  # item is int
-        return self.val[item]
-
-    def get_coordinates(self):
-        return self.val
-
-    @property
-    def x(self):
-        return self.val[0]
-
-    @property
-    def y(self):
-        return self.val[1]
-
-    @property
-    def z(self):
-        return self.val[2]
-
-    @property
-    def o(self):
-        # TODO: distinguish between rotation and translation (vev 2 and vec3)
-        return self.val[3]
-
-    @x.setter
-    def x(self, val):
-        self.val[0] = val
-
-    @y.setter
-    def y(self, val):
-        self.val[1] = val
-
-    @z.setter
-    def z(self, val):
-        self.val[2] = val
-
-    @o.setter
-    def o(self, val):
-        self.val[3] = val
-'''
 
 
 class SFString:
@@ -484,13 +426,49 @@ class Robot:
 
     def start_controller(self, x, y, o):
         # todo:test later
+        print(f'Starting controller with parameters {x}, {y}, {o}')
         self.webots_controller_exe_file = "\msys64\mingw64\bin\webots-controller.exe"
         self.controller_launcher_file_location = os.path.join(os.environ['WEBOTS_HOME'],
                                                               self.webots_controller_exe_file)
         self.options = f"--robot-name=cell_{x}_{y}"
         self.controller_file_location = r"C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\cell_controller_0_2\cell_controller_0_2.py"
         self.launch_controller_string = fr'{self.controller_launcher_file_location} {self.options} '
+        self.backup_string = fr'"%WEBOTS_HOME%\msys64\mingw64\bin\webots-controller.exe" --robot-name=cell_1_1 "C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\cell_controller_0_2\cell_controller_0_2.py"'
+        print('Launching string: ', self.backup_string)
+        print('cwd: ', os.getcwd())
         # fr'"%WEBOTS_HOME%\msys64\mingw64\bin\webots-controller.exe" --robot-name=cell_1_1 "C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\cell_controller_0_2\cell_controller_0_2.py"'
+
+        command = self.backup_string
+        asyncio.run(self.run_controller_swarm(command))
+
+        print('Closing controller.')
+
+    async def run_controller_swarm(self, command):
+        tasks = [asyncio.create_task(self.run_one_controller(command))]
+
+        await asyncio.gather(*tasks)
+
+    async def run_one_controller(self, command):
+        try:
+            # Run the command asynchronously and capture the output
+            process = await asyncio.create_subprocess_shell(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+
+            # Wait for the command to complete with a timeout of 10 seconds
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=10)
+
+            # Decode the output
+            stdout_str = stdout.decode()
+            stderr_str = stderr.decode()
+
+            return stdout_str, stderr_str
+        except asyncio.TimeoutError:
+            return None, "Command execution timed out"
+        except Exception as e:
+            return None, str(e)
 
     def set_default_value(self):
         self._default_values['filename'] = self.filename
