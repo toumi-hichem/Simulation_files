@@ -1,4 +1,4 @@
-import os, subprocess, asyncio
+import os, subprocess, asyncio, platform
 
 
 class SFVec:
@@ -8,9 +8,9 @@ class SFVec:
 
     def __str__(self):
         self.val_str = ''
-        if type(self.val) is type([]):
+        if isinstance(self.val, list):
             for i in self.val:
-                if type(i) is type(''):
+                if isinstance(i, str):
                     self.val_str += f'"{i}"' + " "
                 else:
                     self.val_str += str(i) + " "
@@ -18,7 +18,7 @@ class SFVec:
         return self.val_str
 
     def __getitem__(self, item):
-        assert type(item) is type(1)  # item is int
+        assert isinstance(item, int)
         return self.val[item]
 
     def get_coordinates(self):
@@ -59,254 +59,275 @@ class SFVec:
 
 
 class SFString:
-    def __init__(self, val, istitle=False):
-        if type(val) is type(''):
-            self.val = val
+    def __init__(self, val, add_quotes=False):
+        if isinstance(val, str):
+            self.val = val.strip('"')
         else:
             self.val = str(val)
-        self.istitle = istitle
+        self.add_quotes = add_quotes
+
+    def __add__(self, other):
+        if isinstance(other, str):
+            return SFString(self.no_quotes() + other)
+        elif isinstance(other, SFString):
+            return SFString(self.no_quotes() + other.no_quotes())
 
     def __str__(self):
-        if self.istitle:
+        if self.add_quotes:
             return f'{self.val}'
         else:
             return f'"{self.val}"'
 
     def no_quotes(self):
-        return f'{self.val}'.replace('.', '_')
+        return f'{self.val}'  # .replace('.', '_')
 
     def yes_quotes(self):
-        return f'"{self.val}"'.replace('.', '_')
+        return f'"{self.val}"'  # .replace('.', '_')
 
 
-class Celluvoyer:
-    def __init__(self, translation, rotation, controller: SFString, filename: SFString, name: SFString,
-                 wheel_graphic_path: SFString, chassis_graphic_path: SFString):
-        self.translation = translation
-        self.rotation = rotation
+class Cell:
 
-        self._controller = controller
-        self.name = name
-        self._filename = filename
+    def __init__(self, x, y, translation, wheel_shape, cylinder_shape):
+        self.wheel_shape = wheel_shape
+        self.cylinder_shape = cylinder_shape
 
-        if wheel_graphic_path is None:
-            self.wheel_graphic_path = r'"Celluvoyer_wheel_0_1.dae"'
-        else:
-            self.wheel_graphic_path = wheel_graphic_path
-        # r'"C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\worlds\Celluvoyer_wheel_0_1.dae"'
-        if chassis_graphic_path is None:
-            self.chasis_graphic_path = r'"Celluvoyer_0_1.dae"'
-        else:
-            self.chasis_graphic_path = chassis_graphic_path
-        # r'"C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\worlds\Celluvoyer_0_1.dae"'
-        # {self.name.no_quotes()}
+        self.translation = translation if isinstance(translation, SFVec) else SFVec(translation)
 
-        self.core_string = f"""DEF celluvoyer Robot {{
-      translation {self.translation}
-      rotation {self.rotation}
-      children [
-        DEF V1 Pose {{
-          translation 0.04 0 0.1
-          rotation 0 0 1 1.5707996938995747
+        self.name = SFString(f"cell_{x}_{y}")
+        self.m1 = self.name + "_m1"
+        self.m2 = self.name + "_m2"
+        self.m3 = self.name + "_m3"
+
+        self.joint1 = self.name + "_wheel_1"
+        self.joint2 = self.name + "_wheel_2"
+        self.joint3 = self.name + "_wheel_3"
+
+        self.name_body = self.name + "_body"
+
+        self._core_string = \
+            f'''DEF {self.name.no_quotes()} Pose {{
+    translation {self.translation}
+    children [
+      Solid {{
           children [
-            HingeJoint {{
-              jointParameters HingeJointParameters {{
-                axis 0 1 0
-              }}
-              device [
-                DEF m1 RotationalMotor {{
-                  name "m1"
+            Group {{
+              children [
+                CadShape {{
+                  url [
+                    {self.cylinder_shape.yes_quotes()}
+                  ]
                 }}
               ]
-              endPoint Solid {{
-                rotation -1 1.334576547310534e-15 -7.850450278297259e-17 1.5707993877991409
-                children [
-                  Group {{
-                    children [
-                      DEF wheel_shape Shape {{
-                        appearance PBRAppearance {{
-                          transparency 1
-                        }}
-                        geometry Cylinder {{
-                          height 0.025
-                          radius 0.027
-                        }}
-                      }}
-                      CadShape {{
-                        url [
-                      {self.wheel_graphic_path.yes_quotes()}
-                    ]
-                      }}
-                    ]
-                  }}
-                ]
-                name "solid(1)"
-                boundingObject USE wheel_shape
-                physics Physics {{
-                }}
-              }}
             }}
-          ]
-        }}
-        DEF V2 Pose {{
-          translation -0.02 0.034 0.1
-          rotation 0 0 1 -2.6179953071795863
-          children [
-            HingeJoint {{
-              jointParameters HingeJointParameters {{
-                axis 0 1 0
-              }}
-              device [
-                DEF m2 RotationalMotor {{
-                  name "m2"
+            DEF V1 Pose {{
+              translation 0.04 0 0.1
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {{
+                  jointParameters HingeJointParameters {{
+                    axis 0 1 0
+                  }}
+                  device [
+                    RotationalMotor {{
+                      name {self.m1.yes_quotes()}
+                    }}
+                  ]
+                  endPoint Solid {{
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {{
+                        children [
+                          DEF wheel_shape Shape {{
+                            appearance PBRAppearance {{
+                              transparency 1
+                            }}
+                            geometry Cylinder {{
+                              height 0.025
+                              radius 0.027
+                            }}
+                          }}
+                          CadShape {{
+                            url [
+                              {self.wheel_shape.yes_quotes()}
+                            ]
+                          }}
+                        ]
+                      }}
+                    ]
+                    name {self.joint1.yes_quotes()}
+                    boundingObject USE wheel_shape
+                    physics Physics {{
+                    }}
+                  }}
                 }}
               ]
-              endPoint Solid {{
-                rotation -1 -8.635495306126964e-16 -7.850450278297241e-16 1.5707993877991457
-                children [
-                  Group {{
-                    children [
-                      DEF wheel_shape Shape {{
-                        appearance PBRAppearance {{
-                          transparency 1
-                        }}
-                        geometry Cylinder {{
-                          height 0.025
-                          radius 0.027
-                        }}
-                      }}
-                      CadShape {{
-                        url [
-                      {self.wheel_graphic_path.yes_quotes()}
-                    ]
-                      }}
-                    ]
-                  }}
-                ]
-                name "solid(2)"
-                boundingObject USE wheel_shape
-                physics Physics {{
-                }}
-              }}
             }}
-          ]
-        }}
-        DEF V3 Pose {{
-          translation -0.02 -0.034 0.1
-          rotation 0 0 1 -0.523595307179586
-          children [
-            HingeJoint {{
-              jointParameters HingeJointParameters {{
-                axis 0 1 0
-              }}
-              device [
-                DEF m3 RotationalMotor {{
-                  name "m3"
+            DEF V2 Pose {{
+              translation -0.02 0.034 0.1
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {{
+                  jointParameters HingeJointParameters {{
+                    axis 0 1 0
+                  }}
+                  device [
+                    RotationalMotor {{
+                      name {self.m2.yes_quotes()}
+                    }}
+                  ]
+                  endPoint Solid {{
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {{
+                        children [
+                          DEF wheel_shape Shape {{
+                            appearance PBRAppearance {{
+                              transparency 1
+                            }}
+                            geometry Cylinder {{
+                              height 0.025
+                              radius 0.027
+                            }}
+                          }}
+                          CadShape {{
+                            url [
+                              {self.wheel_shape.yes_quotes()}
+                            ]
+                          }}
+                        ]
+                      }}
+                    ]
+                    name {self.joint2.yes_quotes()}
+                    boundingObject USE wheel_shape
+                    physics Physics {{
+                    }}
+                  }}
                 }}
               ]
-              endPoint Solid {{
-                rotation -1 -3.925225139148627e-16 3.1401801113189015e-16 1.5707993877991426
-                children [
-                  Group {{
-                    children [
-                      DEF wheel_shape Shape {{
-                        appearance PBRAppearance {{
-                          transparency 1
-                        }}
-                        geometry Cylinder {{
-                          height 0.025
-                          radius 0.027
-                        }}
-                      }}
-                      CadShape {{
-                        url [
-                      {self.wheel_graphic_path.yes_quotes()}
-                    ]
-                      }}
-                    ]
+            }}
+            DEF V3 Pose {{
+              translation -0.02 -0.034 0.1
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {{
+                  jointParameters HingeJointParameters {{
+                    axis 0 1 0
                   }}
-                ]
-                boundingObject USE wheel_shape
-                physics Physics {{
+                  device [
+                    RotationalMotor {{
+                      name {self.m3.yes_quotes()}
+                    }}
+                  ]
+                  endPoint Solid {{
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {{
+                        children [
+                          DEF wheel_shape Shape {{
+                            appearance PBRAppearance {{
+                              transparency 1
+                            }}
+                            geometry Cylinder {{
+                              height 0.025
+                              radius 0.027
+                            }}
+                          }}
+                          CadShape {{
+                            url [
+                              {self.wheel_shape.yes_quotes()}
+                            ]
+                          }}
+                        ]
+                      }}
+                    ]
+                    name {self.joint3.yes_quotes()}
+                    boundingObject USE wheel_shape
+                    physics Physics {{
+                    }}
+                  }}
                 }}
+              ]
+            }}
+            DEF hexagon_shape Shape {{
+              appearance PBRAppearance {{
+                baseColor 1 0.333333 1
+                transparency 1
+              }}
+              geometry Cylinder {{
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
               }}
             }}
           ]
-        }}
-        Pose {{
-          children [
-            CadShape {{
-              url [
-            {self.chasis_graphic_path.yes_quotes()}
-          ]
-            }}
-          ]
-        }}
-        DEF hexagon_shape Shape {{
-          appearance PBRAppearance {{
+          name {self.name_body.yes_quotes()}
+          boundingObject USE hexagon_shape
+          physics Physics {{
           }}
-          geometry Cylinder {{
-            height 0.2
-            radius 0.09
-            top FALSE
-            bottom FALSE
-            subdivision 6
-          }}
-          castShadows TRUE
         }}
-      ]
-      name {self.name.no_quotes()}
-      boundingObject USE hexagon_shape
-      physics Physics {{
-      }}
-      controller {self.controller.yes_quotes()}
-    }}"""
+    ]
+    }}'''
 
     def __str__(self):
-        return self.core_string
-
-    @property
-    def controller(self):
-        return self._controller
-
-    @controller.setter
-    def controller(self, val):
-        if type(val) is type(""):
-            self._controller = SFString(val)
-        else:
-            self._controller = val
+        return self._core_string
 
 
-class Field:
-    def __init__(self, field_name="field", type_name="", name="", value=None):
-        self.field_name = field_name
-        self.type_name = type_name
-        self.name = name
-        self.value = value
-        self.value_str = ''
-        if type(self.value) is type([]):
-            for i in self.value:
-                if type(i) is type(''):
-                    self.value_str += f'"{i}"' + " "
+class CelluvoyeRobot:
+    x_cell_dist = 0.174  # TODO: turn into dynamically modified straight from the gui.
+    y_cell_dist = 0.152
+    height = 0.101
+    wheel_shape = SFString('Celluvoyer_wheel_0_1.dae')
+    cylinder_shape = SFString('Celluvoyer_0_1.dae')
+
+    def __init__(self, dimension_x, dimension_y, controller):
+        self.translation_list = []
+        self.cell_list = []
+        self.dimension_x = dimension_x
+        self.dimension_y = dimension_y
+        self.controller = controller if isinstance(controller, SFString) else SFString(controller)
+        # TODO: add other parameters like sync and stuff
+        cells_str = self.create_cells()
+
+        self._core_string = f'''DEF celluvoyer Robot {{
+  children [
+        {cells_str}
+  ]
+  name "main_robot"
+  physics Physics {{
+  }}
+  locked TRUE
+  controller {self.controller.yes_quotes()}
+  synchronization FALSE
+}}
+'''
+
+    def create_cells(self):
+        t = -1
+        for j in range(self.dimension_y):
+            y = self.y_cell_dist * j
+            t *= -1
+            for i in range(self.dimension_x):
+                if j % 2 == 0:
+                    x = self.x_cell_dist * i
                 else:
-                    self.value_str += str(i) + " "
-            self.value_str += ''
-        elif type(name) is type(''):
-            self.value_str = f'"{name}"'
+                    x = self.x_cell_dist * i + (t * self.x_cell_dist / 2)
+                self.cell_list.append(Cell(i, j, SFVec([x, y, self.height]), self.wheel_shape, self.cylinder_shape))
+        t = ''
+        for c in self.cell_list:
+            t += str(c)
+        return t
 
     def __str__(self):
-        return f"{self.field_name} {self.type_name} {self.name} {self.value_str}\n"
+        return self._core_string
 
 
 class Header:
-    def __init__(self, filename, bodies=None):
+    def __init__(self, filename, x, y, controller):
         self.filename = filename
-        self.bodies = bodies
-        if not self.bodies: self.bodies = []
-        field_str = ''
-        body_str = ''
-        for i in self.bodies:
-            body_str += str(i) + '\n'
+        self.robot_object = CelluvoyeRobot(x, y, controller)
+        body_str = str(self.robot_object)
 
         self.orientation = r"orientation 0.1446426463512726 -0.9891624130165184 0.025223511489070028 4.6692983323171"
         self.position = r"position 0.007286806676128004 0.20276337840156394 1.629154495736184"
@@ -338,22 +359,17 @@ RectangleArena {{
 
 
 class Robot:
-    def __init__(self, translation=None, rotation=None, name=None, description=None, supervisor=None, controller=None,
-                 header=None, fields=None,
-                 cells=None, dimensions=None):
+    def __init__(self, translation=None, rotation=None, description=None, supervisor=None, controller=None,
+                 header=None, dimensions=None):
 
-        if fields is None:
-            fields = []
-        if cells is None:
-            cells = []
         if dimensions is None:
             dimensions = [1, 1]
         else:
             assert dimensions[0] >= 1 and dimensions[1] >= 1, "Both dimensions must be more than one at the same time"
 
+        self.header = None
         self._translation = SFVec(translation)
         self._rotation = SFVec(rotation)
-        self.name = name
         self.description = description
         self.supervisor = supervisor
         self._controller = SFString(controller)
@@ -364,63 +380,22 @@ class Robot:
         self.read_filename = 'C:\\Users\\toupa\\Desktop\\ESE - S1\\PFE\\3D\\New folder\\protos\\celluvoyer0_1.proto'
         self.write_filename = f"C:\\Users\\toupa\\Desktop\\ESE - S1\\PFE\\3D\\New folder\\worlds\\{self.filename}.wbt"
 
-        self.fields = fields
-        self.cells = cells
-
-        self.x_cell_dist = 0.174
-        self.y_cell_dist = 0.152
         self.translation_list = []
+        self.name_list = []
         self.name_list = []
         self._default_values = {}
         self.set_default_value()
 
-
     def __str__(self):
         return str(self.header)
 
-    def create_fields(self):
-        self.fields = []
-        self.fields.append(Field(field_name='field', type_name='SFVec3f', name='translation', value=[0, 0, 0.1]))
-        self.fields.append(Field(field_name='field', type_name='SFRotation', name='rotation', value=[0, 0, 1, 0]))
-        self.fields.append(
-            Field(field_name='unconnectedField', type_name='SFVec2f', name='lines_columns_size', value=[2, 2]))
-
-        self.fields.append(
-            Field(field_name='field', type_name='SFString', name='controller', value="celluvoyer_controller_0_1"))
-        self.fields.append(Field(field_name='field', type_name='MFString', name='wheel_graphic', value=[
-            "C:/Users/toupa/Desktop/ESE - S1/PFE/3D/New folder/worlds/Celluvoyer_wheel_0_1.dae"]))
-        self.fields.append(Field(field_name='field', type_name='MFString', name='chasis_graphic',
-                                 value=["C:/Users/toupa/Desktop/ESE - S1/PFE/3D/New folder/worlds/Celluvoyer_0_1.dae"]))
-
-    def create_cells(self, dimensions):
-        self.cells = []
-        # TODO: migrate create_cells and create fields inside Header
-        t = -1
-        # TODO: make sure you add global coordinates depending on where the first cell is
-        for j in range(dimensions[1]):
-            y = self.y_cell_dist * j
-            t *= -1
-            for i in range(dimensions[0]):
-                if j % 2 == 0:
-                    x = self.x_cell_dist * i
-                else:
-                    x = self.x_cell_dist * i + (t * self.x_cell_dist / 2)
-                self.translation_list.append(SFVec([x, y, self.translation[2]]))
-                self.name_list.append(f'cell_{i}_{j}')
-        for cor in range(len(self.translation_list)):
-            self.cells.append(Celluvoyer(self.translation_list[cor], self.rotation, self.controller,
-                                         self.filename, SFString(self.name_list[cor])))
-
     def update_data(self):
-        self.create_fields()
-        self.create_cells(dimensions=self.dimensions)
-
-        self.header = Header(self.filename, self.cells)
+        self.header = Header(self.filename, *self.dimensions, self.controller)
 
     def create_file(self):
         self.update_data()
         self.write_filename = f"C:\\Users\\toupa\\Desktop\\ESE - S1\\PFE\\3D\\New folder\\worlds\\{self.filename}.wbt"
-        print(f"Creating file at: {self.write_filename}")
+        print(f"file at: {self.write_filename}")
         with open(self.write_filename, 'w') as f:
             f.write(str(self))
 
@@ -433,42 +408,26 @@ class Robot:
         self.options = f"--robot-name=cell_{x}_{y}"
         self.controller_file_location = r"C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\cell_controller_0_2\cell_controller_0_2.py"
         self.launch_controller_string = fr'{self.controller_launcher_file_location} {self.options} '
-        self.backup_string = fr'"%WEBOTS_HOME%\msys64\mingw64\bin\webots-controller.exe" --robot-name=cell_1_1 "C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\cell_controller_0_2\cell_controller_0_2.py"'
+        self.backup_string = fr'"%WEBOTS_HOME%\msys64\mingw64\bin\webots-controller.exe" --robot-name=main_robot "C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\cell_controller_0_2\cell_controller_0_2.py"'
         print('Launching string: ', self.backup_string)
         print('cwd: ', os.getcwd())
-        # fr'"%WEBOTS_HOME%\msys64\mingw64\bin\webots-controller.exe" --robot-name=cell_1_1 "C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\cell_controller_0_2\cell_controller_0_2.py"'
+        # fr'"%WEBOTS_HOME%\msys64\mingw64\bin\webots-controller.exe" --robot-name=main_robot "C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\cell_controller_0_2\cell_controller_0_2.py"'
 
         command = self.backup_string
-        asyncio.run(self.run_controller_swarm(command))
-
+        result = self.execute_command(command)
+        print(result)
         print('Closing controller.')
 
-    async def run_controller_swarm(self, command):
-        tasks = [asyncio.create_task(self.run_one_controller(command))]
-
-        await asyncio.gather(*tasks)
-
-    async def run_one_controller(self, command):
+    @staticmethod
+    def execute_command(command):
         try:
-            # Run the command asynchronously and capture the output
-            process = await asyncio.create_subprocess_shell(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
-            )
+            result = subprocess.run(command, capture_output=True, text=True, check=True, shell=True, timeout=5)
+        except subprocess.CalledProcessError as e:
+            print(f"Error executing the command: {e}")
+            print(e.stderr)
 
-            # Wait for the command to complete with a timeout of 10 seconds
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=10)
-
-            # Decode the output
-            stdout_str = stdout.decode()
-            stderr_str = stderr.decode()
-
-            return stdout_str, stderr_str
-        except asyncio.TimeoutError:
-            return None, "Command execution timed out"
-        except Exception as e:
-            return None, str(e)
+        except FileNotFoundError:
+            print("Error: Command not found.")
 
     def set_default_value(self):
         self._default_values['filename'] = self.filename
@@ -481,7 +440,7 @@ class Robot:
                                             'wheel': SFString('Celluvoyer_wheel_0_1.dae')}
         self._default_values['cwd'] = r'C:\Users\toupa\Desktop\ESE - S1\PFE\Simulation_files'
 
-        # TODO: save the state of the last inputted filename
+        # TODO: save the state of the last inputted filename, pickle, or a sitting file or use native PyQt settings
 
     @property
     def default_values(self):
@@ -493,7 +452,7 @@ class Robot:
 
     @filename.setter
     def filename(self, val):
-        self._filename = SFString(val, istitle=True)
+        self._filename = SFString(val, add_quotes=True)
 
     @property
     def translation(self):
@@ -531,7 +490,10 @@ class Robot:
 
     @dimensions.setter
     def dimensions(self, val):
-        self._dimensions = SFVec(val)
+        if isinstance(val, SFVec):
+            self._dimensions = val
+        else:
+            self._dimensions = SFVec(val)
 
 
 if __name__ == '__main__':

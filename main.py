@@ -15,9 +15,6 @@ def ui_to_py():
 
 
 if __name__ == '__main__':
-    #r = Robot(translation=[0, 0, 0.1], dimensions=[5, 5], rotation=[0, 0, 1, 0], controller=r'<extern>')
-    #r.create_file()
-    #print(r)
     app = QApplication(sys.argv)
     r = Robot(translation=[0, 0, 0.1], dimensions=[5, 5], rotation=[0, 0, 1, 0], controller=r'<extern>')
     ui = MainUi(r)

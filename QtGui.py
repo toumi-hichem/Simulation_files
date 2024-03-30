@@ -17,7 +17,6 @@ def get_hexagon(x, y, length):
     for i in range(6):
 
         poly << QPointF(cos(radians(starting_angle + angle_between * i)), sin(radians(starting_angle + angle_between * i)))
-        print(cos(radians(starting_angle + angle_between * i)), sin(radians(starting_angle + angle_between * i)))
     return poly
 
 
@@ -28,14 +27,9 @@ class BackgroundItem(QGraphicsItemGroup):    # QGraphicsPolygonItem
         self.scene = scene
         self.hex_size = 20  # Size of hexagons
         self.spacing = -100  # Spacing between hexagons
-        rows = 10
-        cols = 10
         self.pen = QPen(QColor("green"))
         self.brush = QBrush(QColor('blue'))
         self.create_table(0, 0, rows, cols)  # TODO: replace x and  with table position
-
-
-        self._poly = None
 
         # self.setup_background(rows, cols, cell_width, cell_height)
 
@@ -64,10 +58,14 @@ class BackgroundItem(QGraphicsItemGroup):    # QGraphicsPolygonItem
 class Table_preview(QWidget):
     def __init__(self, *args):
         super().__init__(*args)
+
         self.parent = self.parent()
+        self.parent.objectName()
         self.background_item = None
         self.view = QGraphicsView()
         self.scene = QGraphicsScene()
+        self.paths = [[], ]
+        self.path_index = 0
 
         # Set up scenes
         self.table_cols = 2
@@ -84,7 +82,6 @@ class Table_preview(QWidget):
         self.last_point = None
         self.drawing = False
 
-
     def setup_buttons(self):
         layout = QVBoxLayout(self)
         layout.addWidget(self.view)
@@ -99,6 +96,8 @@ class Table_preview(QWidget):
         self.launch.setObjectName('launch_button')
 
         self.clear_drawing.clicked.connect(self.update_foreground_scene)
+        self.calculate.clicked.connect(self.calculate_path)
+
 
 
         layout_button.addWidget(self.clear_drawing)
@@ -113,7 +112,30 @@ class Table_preview(QWidget):
         self.setLayout(layout)
 
     def calculate_path(self):
-        pass
+        pen = QPen(Qt.red, 2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+        for p in self.paths[0]:
+            self.scene.addPath(p, pen)
+            print([self.get_coordinates_from_path(p)])
+        p = QPainterPath()
+        for po in self.paths[0]:
+            p.addPath(po)
+        print([self.get_coordinates_from_path(p)])
+        self.scene.addItem(self.background_item)
+        self.view.setScene(self.scene)
+
+    @staticmethod
+    def get_coordinates_from_path(path):
+        coordinates = []
+        # Iterate over each element in the path
+        for i in range(path.elementCount()):
+            element = path.elementAt(i)
+            # Depending on the type of element, extract coordinates accordingly
+            if element.isMoveTo():
+                coordinates.append((element.x, element.y))
+            elif element.isLineTo():
+                coordinates.append((element.x, element.y))
+            # You can handle other types of elements like curves if needed
+        return coordinates
 
     def launch_controller(self):
         self.main_window.robot.launch_controller_string(1, 1, 0)
@@ -159,6 +181,8 @@ class Table_preview(QWidget):
                 self.drawing = True
                 self.last_point = self.view.mapToScene(event.pos())
         elif event.type() == QEvent.MouseButtonRelease:
+            self.path_index += 1
+            self.paths.append([])
             if event.button() == Qt.LeftButton:
                 self.drawing = False
                 self.last_point = None
@@ -171,6 +195,7 @@ class Table_preview(QWidget):
         path.moveTo(start_point)
         path.lineTo(end_point)
         self.scene.addPath(path, pen)
+        self.paths[self.path_index].append(path)
         self.scene.addItem(self.background_item)
         self.view.setScene(self.scene)
 
@@ -185,6 +210,8 @@ class MainUi(QMainWindow):
         self._default_values = self.robot.default_values
         self.stackedWidget_3000: QStackedWidget = self.findChild(QStackedWidget, "stackedWidget_3000")
         self.stackedWidget_3000.setCurrentIndex(1)
+        self.table_preview = self.findChild(QWidget, 'widget')
+        self.table_preview_2 = self.findChild(QWidget, 'widget_2')
 
         self.initialize()
 
@@ -242,7 +269,8 @@ class MainUi(QMainWindow):
         self.scene = QGraphicsScene()
         self.brush_blue = QBrush(Qt.blue)
         self.pen = QPen()
-
+        self.table_preview.set_background_parameters(self.dimension_x.value(), self.dimension_y.value())
+        self.table_preview_2.set_background_parameters(self.dimension_x.value(), self.dimension_y.value())
         # self.Table_preview.setScene(self.scene)
 
     def create_webot_world_file(self):
@@ -290,7 +318,7 @@ class MainUi(QMainWindow):
         self.calculate_button = self.findChild(QPushButton, 'calculate_button')
         self.launch_button = self.findChild(QPushButton, 'launch_button')
 
-        self.launch_button.clicked.connect(lambda: self.robot.start_controller(0, 0, 1))
+        self.launch_button.clicked.connect(lambda: self.robot.start_controller(0, 0, 1)) # TODO: redo
         # elipse = self.scene.addEllipse(20, 20, 200, 200, self.pen, self.brush_blue)
         # poly = QPolygonF()
         # poly = self.get_hexagon(0, 0, 20)
@@ -298,6 +326,7 @@ class MainUi(QMainWindow):
         # self.scene.addPolygon(poly, self.pen, self.brush_blue)
         # self.update_table_preview()
         pass
+
     @property
     def default_values(self):
         return self._default_values
