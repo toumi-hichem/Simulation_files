@@ -1,3 +1,4 @@
+import math
 from math import cos, sin, radians
 from PyQt5.uic import loadUi
 from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow
@@ -21,14 +22,25 @@ def get_hexagon(x, y, length):
 
 
 class BackgroundItem(QGraphicsItemGroup):    # QGraphicsPolygonItem
-    def __init__(self, scene, rows, cols, cell_width, cell_height):
+    def __init__(self, scene, rows, cols, cell_width, cell_height, show_arrows, angle_field=None):
         super().__init__()
         #0, 0, cols * cell_width, rows * cell_height
         self.scene = scene
-        self.hex_size = 20  # Size of hexagons
+        self.angle_field = angle_field
+        self.hex_size = 40  # Size of hexagons
         self.spacing = -100  # Spacing between hexagons
+        self.x_spacing = self.hex_size * 1.7
+        self.y_spacing = self.hex_size * 1.5
+        self.vector_length = self.hex_size / 2
+
+        self.vector_pen = QPen(QColor("yellow"))
+        self.vector_brush = QBrush(QColor('blue'))
+        self.vector_dir = math.pi
+
         self.pen = QPen(QColor("green"))
         self.brush = QBrush(QColor('blue'))
+
+        self.show_arrows = show_arrows
         self.create_table(0, 0, rows, cols)  # TODO: replace x and  with table position
 
         # self.setup_background(rows, cols, cell_width, cell_height)
@@ -46,26 +58,50 @@ class BackgroundItem(QGraphicsItemGroup):    # QGraphicsPolygonItem
     def create_table(self, x, y, x_times, y_times):
         for i in range(x_times):
             for j in range(y_times):
-                center_x = x + self.hex_size * 1.8 * i + (self.hex_size * 0.9 if j % 2 == 0 else 0) + self.spacing
-                center_y = y + self.hex_size * 1.5 * j + self.spacing
+                center_x = x + self.x_spacing * i + (self.hex_size * 0.9 if j % 2 == 0 else 0) + self.spacing
+                center_y = y + self.y_spacing * j + self.spacing
 
                 hexagon = QGraphicsPolygonItem(self.create_hexagon(center_x, center_y))
                 hexagon.setPen(self.pen)
                 hexagon.setBrush(self.brush)
+                if self.angle_field:
+                    self.vector_dir = self.angle_field[i][j]
+                vec_x_end = center_x + self.vector_length * cos(self.vector_dir)
+                vec_y_end = center_y + self.vector_length * sin(self.vector_dir)
+                line = QGraphicsLineItem(center_x, center_y, vec_x_end, vec_y_end)
+                line.setPen(self.vector_pen)
+
+                arrow_angle = self.vector_dir + math.pi * (3 / 4)
+                arrow_right = QGraphicsLineItem(vec_x_end, vec_y_end, vec_x_end + ((self.vector_length / 2) * cos(arrow_angle)), vec_y_end + ((self.vector_length / 2) * sin(arrow_angle)))
+                arrow_angle -= math.pi * (3 / 4) * 2
+                arrow_left  = QGraphicsLineItem(vec_x_end, vec_y_end, vec_x_end + ((self.vector_length / 2) * cos(arrow_angle)), vec_y_end + ((self.vector_length / 2) * sin(arrow_angle)))
+
+                arrow_left.setPen(self.vector_pen)
+                arrow_right.setPen(self.vector_pen)
+
                 self.addToGroup(hexagon)
+
+                if self.show_arrows:
+                    self.addToGroup(line)
+                    self.addToGroup(arrow_right)
+                    self.addToGroup(arrow_left)
 
 
 class Table_preview(QWidget):
     def __init__(self, *args):
         super().__init__(*args)
-
+        self.show_arrows = False
+        self.angle_field = None
         self.parent = self.parent()
         self.parent.objectName()
         self.background_item = None
         self.view = QGraphicsView()
         self.scene = QGraphicsScene()
         self.paths = [[], ]
+        self.coor_list = []
+
         self.path_index = 0
+        self.coor_index = 0
 
         # Set up scenes
         self.table_cols = 2
@@ -113,42 +149,51 @@ class Table_preview(QWidget):
 
     def calculate_path(self):
         pen = QPen(Qt.red, 2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
-        for p in self.paths[0]:
+        for p in self.paths[self.path_index - 1]:
             self.scene.addPath(p, pen)
-            print([self.get_coordinates_from_path(p)])
-        p = QPainterPath()
-        for po in self.paths[0]:
-            p.addPath(po)
-        print([self.get_coordinates_from_path(p)])
+        print("coordinates list: ", self.coor_list)
+        self.angle_field = self.get_vec_field_from_path(0)   # TODO: add list to choose from in QAction menu
+
         self.scene.addItem(self.background_item)
         self.view.setScene(self.scene)
 
-    @staticmethod
-    def get_coordinates_from_path(path):
-        coordinates = []
-        # Iterate over each element in the path
-        for i in range(path.elementCount()):
-            element = path.elementAt(i)
-            # Depending on the type of element, extract coordinates accordingly
-            if element.isMoveTo():
-                coordinates.append((element.x, element.y))
-            elif element.isLineTo():
-                coordinates.append((element.x, element.y))
-            # You can handle other types of elements like curves if needed
-        return coordinates
+    def get_vec_field_from_path(self, index):
+        points = []
+        print("Using path number: ", self.coor_index - 1)
+        for qp in self.coor_list[self.coor_index-1]:
+            points.append((qp.x(), qp.y()))
+        # TODO: Fix the hexagon cell width, height and dist between
+        self.hex_size = 40  # Size of hexagons
+        self.spacing = -100  # Spacing between hexagons
+        self.x_spacing = self.hex_size * 1.7
+        self.y_spacing = self.hex_size * 1.5
+        self.vector_length = self.hex_size / 2
+        angle_field = [[0 for i in range(self.table_cols)] for j in range(self.table_rows)]
+        for i in range(self.table_rows):
+            for j in range(self.table_cols):
+                center_x = self.x_spacing * i + (self.hex_size * 0.9 if j % 2 == 0 else 0) + self.spacing
+                center_y = self.y_spacing * j + self.spacing
+
+                vector_position = (center_x, center_y)
+                closest_point = min(points, key=lambda p: math.dist(p, vector_position))
+
+                # Calculate the direction vector from the current vector to the closest point on the path
+                direction_vector = (closest_point[0] - vector_position[0], closest_point[1] - vector_position[1])
+                direction_length = math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2)
+                direction_vector = (direction_vector[0] / direction_length, direction_vector[1] / direction_length)
+
+                angle = math.atan2(direction_vector[1], direction_vector[0])
+                angle_field[i][j] = angle
+        return angle_field
 
     def launch_controller(self):
         self.main_window.robot.launch_controller_string(1, 1, 0)
         pass
 
     def setup_background_scene(self):  # TODO: implement to be called from MainUi using dimension_x inputs
-        # Clear items from the background scene
-
-        # Add items to background scene
-        # Add items to background scene
         cell_width = 50
         cell_height = 50
-        self.background_item = BackgroundItem(self.scene, self.table_rows, self.table_cols, cell_width, cell_height)
+        self.background_item = BackgroundItem(self.scene, self.table_rows, self.table_cols, cell_width, cell_height, self.show_arrows, self.angle_field)
         self.scene.clear()
         self.scene.addItem(self.background_item)
         self.view.setScene(self.scene)
@@ -163,9 +208,10 @@ class Table_preview(QWidget):
         # same as setup but with different values of rows and cols, called from MainUi
         self.setup_background_scene()  # TODO: Call from MainUi instead
 
-    def set_background_parameters(self, rows, cols):
+    def set_background_parameters(self, rows, cols, show_arrows):
         self.table_cols = cols
         self.table_rows = rows
+        self.show_arrows = show_arrows
         self.update_background_scene()
 
     def eventFilter(self, obj, event):
@@ -175,12 +221,16 @@ class Table_preview(QWidget):
                 current_point = self.view.mapToScene(event.pos())
                 if self.last_point is not None:
                     self.draw_on_scene(self.last_point, current_point)
+                    print(" compare: ", self.coor_index, " with ", len(self.coor_list))
+                    self.coor_list[self.coor_index].append(current_point)
                 self.last_point = current_point
         elif event.type() == QEvent.MouseButtonPress:
             if event.button() == Qt.LeftButton:
                 self.drawing = True
                 self.last_point = self.view.mapToScene(event.pos())
+                self.coor_list.append([event.pos()])
         elif event.type() == QEvent.MouseButtonRelease:
+            self.coor_index += 1
             self.path_index += 1
             self.paths.append([])
             if event.button() == Qt.LeftButton:
@@ -208,6 +258,7 @@ class MainUi(QMainWindow):
         self.resize(1366, 768)
         self.robot = robot
         self._default_values = self.robot.default_values
+        self.show_arrows = False
         self.stackedWidget_3000: QStackedWidget = self.findChild(QStackedWidget, "stackedWidget_3000")
         self.stackedWidget_3000.setCurrentIndex(1)
         self.table_preview = self.findChild(QWidget, 'widget')
@@ -216,7 +267,8 @@ class MainUi(QMainWindow):
         self.initialize()
 
     def initialize(self):
-
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.installEventFilter(self)
         self.set_triggers()
         self.set_default_values()
         self.set_table_preview()
@@ -238,19 +290,26 @@ class MainUi(QMainWindow):
             self.statusBar().showMessage(f"{option}: {file_path}")
 
     def set_menu(self):
-        self.actionChasis.triggered.connect(lambda: self.open_file('Chassis', 'dae'))
-        self.actionWheel.triggered.connect(lambda: self.open_file('Wheel', 'dae'))
-        self.actionController.triggered.connect(lambda: self.open_file('Controller', 'py'))
-        self.actionWebot_world_file.triggered.connect(lambda: self.open_file('Controller', 'py', 'save'))
+        self.actionChasis.triggered.connect(lambda: self.open_file('Chassis', 'dae', 'open'))
+        self.actionWheel.triggered.connect(lambda: self.open_file('Wheel', 'dae', 'open'))
+        self.actionController.triggered.connect(lambda: self.open_file('Controller', 'py', 'open'))
+        self.actionWebot_world_file.triggered.connect(lambda: self.open_file('Controller', 'py', 'save', 'open'))
 
-        self.actionEdit_table_data.triggered.connect(lambda: self.switch_menu(self.actionEdit_table_data)) #1
-        self.actionPath_and_preview.triggered.connect(lambda: self.switch_menu(self.actionPath_and_preview)) #0
+        self.actionEdit_table_data.triggered.connect(lambda: self.switch_menu(self.actionEdit_table_data))  # 1
+        self.actionPath_and_preview.triggered.connect(lambda: self.switch_menu(self.actionPath_and_preview))    # 0
 
+        self.actionShow_arrows.triggered.connect(self.display_arrows)
         self.actionPath_and_preview.setObjectName('draw_screen')
         self.actionEdit_table_data.setObjectName('preview_screen')
 
-    def switch_menu(self, action):
-        if action.objectName() == 'draw_screen':
+    def switch_menu(self, action=None):
+        if not action:
+            if self.stackedWidget_3000.currentIndex() == 1:
+                self.stackedWidget_3000.setCurrentIndex(0)
+            else:
+                self.stackedWidget_3000.setCurrentIndex(1)
+
+        elif action.objectName() == 'draw_screen':
             action.setChecked(True)
             self.actionEdit_table_data.setChecked(False)
             self.stackedWidget_3000.setCurrentIndex(0)
@@ -258,6 +317,19 @@ class MainUi(QMainWindow):
             action.setChecked(True)
             self.actionPath_and_preview.setChecked(False)
             self.stackedWidget_3000.setCurrentIndex(1)
+
+    def display_arrows(self):
+        if self.actionShow_arrows.isChecked():
+            self.show_arrows = True
+        else:
+            self.show_arrows = False
+        self.update_table_preview()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Backslash:
+            self.switch_menu()
+        else:
+            super().keyPressEvent(event)
 
     def set_triggers(self):
         self.button_create.clicked.connect(self.create_webot_world_file)
@@ -269,8 +341,8 @@ class MainUi(QMainWindow):
         self.scene = QGraphicsScene()
         self.brush_blue = QBrush(Qt.blue)
         self.pen = QPen()
-        self.table_preview.set_background_parameters(self.dimension_x.value(), self.dimension_y.value())
-        self.table_preview_2.set_background_parameters(self.dimension_x.value(), self.dimension_y.value())
+        self.table_preview.set_background_parameters(self.dimension_x.value(), self.dimension_y.value(), self.show_arrows)
+        self.table_preview_2.set_background_parameters(self.dimension_x.value(), self.dimension_y.value(), self.show_arrows)
         # self.Table_preview.setScene(self.scene)
 
     def create_webot_world_file(self):
