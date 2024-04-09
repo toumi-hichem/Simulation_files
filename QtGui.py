@@ -152,7 +152,7 @@ class Table_preview(QWidget):
         for p in self.paths[self.path_index - 1]:
             self.scene.addPath(p, pen)
         print("coordinates list: ", self.coor_list)
-        self.angle_field = self.get_vec_field_from_path(0)   # TODO: add list to choose from in QAction menu
+        #self.angle_field = self.get_vec_field_from_path(0)   # TODO: add list to choose from in QAction menu
 
         self.scene.addItem(self.background_item)
         self.view.setScene(self.scene)
@@ -160,31 +160,73 @@ class Table_preview(QWidget):
     def get_vec_field_from_path(self, index):
         points = []
         print("Using path number: ", self.coor_index - 1)
-        for qp in self.coor_list[self.coor_index-1]:
-            points.append((qp.x(), qp.y()))
+        #for qp in self.coor_list[self.coor_index-1]:
+        #    points.append((qp.x(), qp.y()))
+        points = self.coor_list[self.coor_index-1]
         # TODO: Fix the hexagon cell width, height and dist between
         self.hex_size = 40  # Size of hexagons
         self.spacing = -100  # Spacing between hexagons
         self.x_spacing = self.hex_size * 1.7
         self.y_spacing = self.hex_size * 1.5
         self.vector_length = self.hex_size / 2
+        tolerance = 40
         angle_field = [[0 for i in range(self.table_cols)] for j in range(self.table_rows)]
-        for i in range(self.table_rows):
-            for j in range(self.table_cols):
-                center_x = self.x_spacing * i + (self.hex_size * 0.9 if j % 2 == 0 else 0) + self.spacing
-                center_y = self.y_spacing * j + self.spacing
+        i, j = 0, 0
+        for cell in points:
+            cell_center = cell
+            # Check if the cell is close enough to the path
+            if self.is_cell_close_to_path(cell_center, tolerance):
+                # Calculate the tangent direction at the nearest point on the path
+                tangent_vector = self.calculate_tangent_at_nearest_point(cell_center)
+                self.angle_field.append
 
-                vector_position = (center_x, center_y)
-                closest_point = min(points, key=lambda p: math.dist(p, vector_position))
 
-                # Calculate the direction vector from the current vector to the closest point on the path
-                direction_vector = (closest_point[0] - vector_position[0], closest_point[1] - vector_position[1])
-                direction_length = math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2)
-                direction_vector = (direction_vector[0] / direction_length, direction_vector[1] / direction_length)
+    def is_cell_close_to_path(self, cell_center, tolerance):
+        # Check if the cell center is close enough to the path
+        for i in range(1, len(self.path)):
+            start_point = self.path[i - 1]
+            end_point = self.path[i]
 
-                angle = math.atan2(direction_vector[1], direction_vector[0])
-                angle_field[i][j] = angle
-        return angle_field
+            # Create a line segment from the start to end point
+            line_segment = QLineF(start_point, end_point)
+
+            # Check if the cell center is close enough to the line segment
+            distance = line_segment.lengthTo(cell_center)
+            if distance <= tolerance:
+                return True
+
+        return False
+
+    def calculate_tangent_at_nearest_point(self, cell_center):
+        # Find the nearest point on the path to the cell center
+        nearest_point = self.find_nearest_point_on_path(cell_center)
+
+        # Calculate the tangent vector at the nearest point
+        tangent_vector = QPointF(nearest_point.y() - cell_center.y(), cell_center.x() - nearest_point.x())
+        tangent_vector /= QLineF(nearest_point, cell_center).length()
+
+        return tangent_vector
+
+    def find_nearest_point_on_path(self, cell_center):
+        # Find the nearest point on the path to the cell center
+        min_distance = float('inf')
+        nearest_point = None
+
+        for i in range(1, len(self.path)):
+            start_point = self.path[i - 1]
+            end_point = self.path[i]
+
+            # Calculate the nearest point on the line segment to the cell center
+            line_segment = QLineF(start_point, end_point)
+            nearest_point_on_segment = line_segment.pointAt(line_segment.closestPercent(cell_center))
+
+            # Calculate the distance from the cell center to the nearest point
+            distance = QLineF(nearest_point_on_segment, cell_center).length()
+            if distance < min_distance:
+                min_distance = distance
+                nearest_point = nearest_point_on_segment
+
+        return nearest_point
 
     def launch_controller(self):
         self.main_window.robot.launch_controller_string(1, 1, 0)
