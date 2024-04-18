@@ -418,16 +418,6 @@ class Robot:
         print(result)
         print('Closing controller.')
 
-    @staticmethod
-    def execute_command(command):
-        try:
-            result = subprocess.run(command, capture_output=True, text=True, check=True, shell=True, timeout=5)
-        except subprocess.CalledProcessError as e:
-            print(f"Error executing the command: {e}")
-            print(e.stderr)
-
-        except FileNotFoundError:
-            print("Error: Command not found.")
 
     def set_default_value(self):
         self._default_values['filename'] = self.filename

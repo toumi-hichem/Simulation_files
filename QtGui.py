@@ -1,5 +1,5 @@
 import math
-import pprint
+#import statsmodels.api as sm
 from math import cos, sin, radians
 from math import sqrt as sq
 import numpy as np
@@ -13,6 +13,9 @@ from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsView, QVBoxL
 from PyQt5.QtGui import QBrush, QPen, QPolygonF, QPainter, QImage, QPixmap, QPainterPath, QColor
 from PyQt5.QtCore import Qt, QPointF, QLineF, QEvent, QRectF, pyqtSlot
 
+
+# TODO: Create a side tab which varies the mouse painter size to accomodate different package sizes
+# maybe even exclude individual engines if not inside bounds to save energy
 
 def get_hexagon(x, y, length):
     starting_angle = 30
@@ -77,7 +80,9 @@ class BackgroundItem(QGraphicsItemGroup):    # QGraphicsPolygonItem
                 hexagon.setPen(self.pen)
                 hexagon.setBrush(self.brush)
                 if self.angle_field is not None:
-                    self.vector_dir = self.angle_field[i][j]
+                    self.vector_dir = math.atan2(*self.angle_field[i][j])
+                # convert self.vector_dir to an angle
+
                 vec_x_end = center_x + self.vector_length * cos(self.vector_dir)
                 vec_y_end = center_y + self.vector_length * sin(self.vector_dir)
                 line = QGraphicsLineItem(center_x, center_y, vec_x_end, vec_y_end)
@@ -97,7 +102,7 @@ class BackgroundItem(QGraphicsItemGroup):    # QGraphicsPolygonItem
                     self.addToGroup(line)
                     self.addToGroup(arrow_right)
                     self.addToGroup(arrow_left)
-
+        print("All positions: ", self.positions)
 
 class Table_preview(QWidget):
     def __init__(self, *args):
@@ -164,9 +169,9 @@ class Table_preview(QWidget):
         for p in self.paths[self.path_index - 1]:
             self.scene.addPath(p, pen)        #self.angle_field = self.get_vec_field_from_path(0)   # TODO: add list to choose from in QAction menu
         points = self.coor_list[self.coor_index-1]
-        t = self.calculate_tangents(points)
         vec_fiel = self.background_item.positions
-        self.angle_field = self.create_vector_field(points, t, vec_fiel, 5, 5, 500)
+        # TODO: Add threshold to gui
+        self.angle_field = self.create_vector_field(points, vec_fiel, 5, 5, 90)
         self.update_background_scene()
 
         self.scene.addItem(self.background_item)
@@ -196,44 +201,136 @@ class Table_preview(QWidget):
                 self.angle_field.append
 
     @staticmethod
-    def calculate_tangents(path_points):
-        tangents = []
-        for i in range(1, len(path_points) - 1):
-            dx = path_points[i + 1][0] - path_points[i - 1][0]
-            dy = path_points[i + 1][1] - path_points[i - 1][1]
-            tangent = np.array([dx, dy]) / np.linalg.norm([dx, dy])
-            tangents.append(tangent)
-        # Extend the first and last tangent to the boundary points
-        tangents.insert(0, tangents[0])
-        tangents.append(tangents[-1])
-        return tangents
+    def get_smoothed_direction(path, point_index, window_size):
+        """
+        Estimates the direction at a point using moving average and finite differencing.
 
-    def create_vector_field(self, path_points, tangents, vec_fiel, x, y, threshold_distance):
+        Args:
+            path: A list of coordinates representing the path points.
+            point_index: The index of the point in the path for which to estimate the direction.
+            window_size: The size of the moving average window.
+
+        Returns:
+            A list representing the estimated direction vector.
+        """
+
+        if window_size % 2 == 0:
+            window_size += 1
+
+        half_window = window_size // 2  # Integer division for window center
+        smoothed_x = 0
+        smoothed_y = 0
+
+        # Calculate moving average centered on the point
+        for i in range(point_index - half_window, point_index + half_window + 1):
+            if 0 <= i < len(path):
+                smoothed_x += path[i][0]
+                smoothed_y += path[i][1]
+
+        smoothed_x /= window_size
+        smoothed_y /= window_size
+
+        # Estimate direction using previous or next point (depending on edge cases)
+        if point_index == 0:
+            return [smoothed_x - path[point_index + 1][0], smoothed_y - path[point_index + 1][1]]
+        elif point_index == len(path) - 1:
+            return [path[point_index - 1][0] - smoothed_x, path[point_index - 1][1] - smoothed_y]
+        else:
+            return [smoothed_x - path[point_index - 1][0], smoothed_y - path[point_index - 1][1]]
+
+    @staticmethod
+    def get_estimated_tangent(path, point_index):
+        """
+        Estimates the tangent vector at a point in the path using finite differencing.
+
+        Args:
+            path: A list of coordinates representing the path points.
+            point_index: The index of the point in the path for which to estimate the tangent vector.
+
+        Returns:
+            A list representing the estimated tangent vector.
+        """
+
+        if point_index == 0:
+            # Handle edge case for first point (use next two points)
+            delta_x = path[point_index + 1][0] - path[point_index][0]
+            delta_y = path[point_index + 1][1] - path[point_index][1]
+        elif point_index == len(path) - 1:
+            # Handle edge case for last point (use previous two points)
+            delta_x = path[point_index][0] - path[point_index - 1][0]
+            delta_y = path[point_index][1] - path[point_index - 1][1]
+        else:
+            # Estimate tangent for middle points
+            delta_x = path[point_index + 1][0] - path[point_index - 1][0]
+            delta_y = path[point_index + 1][1] - path[point_index - 1][1]
+
+        # Calculate magnitude (avoid division by zero)
+        magnitude = (delta_x ** 2 + delta_y ** 2) ** 0.5
+        if magnitude > 0:
+            # Normalize to get unit tangent vector
+            return [delta_x / magnitude, delta_y / magnitude]
+        else:
+            # Handle case of zero vector (consider stopping or adjusting path)
+            return [0, 0]
+
+    @staticmethod
+    def get_local_regression_direction(path, point_index, window_size, degree):
+        """
+        Estimates the direction at a point using local regression (scikit-learn).
+
+        Args:
+            path: A list of coordinates representing the path points.
+            point_index: The index of the point in the path for which to estimate the direction.
+            window_size: The size of the window for local regression.
+            degree: The degree of the polynomial to fit for loess.
+
+        Returns:
+            A list representing the estimated direction vector (slope).
+        """
+
+        # Extract x and y coordinates
+        x = [[point[0]] for point in path]  # Reshape for scikit-learn format
+        y = [point[1] for point in path]
+
+        # Define model with desired parameters
+        model = LocalPolynomialRegression(degree=degree, n_neighbors=window_size)
+
+        # Fit the model on the path data
+        model.fit(x, y)
+
+        # Predict the fitted y value for the current point
+        predicted_y = model.predict([[x[point_index][0]]])[0]
+
+        # Estimate direction based on slope (difference in y)
+        if point_index == 0:
+            return [0, predicted_y - y[point_index + 1]]  # Handle edge case (use next point)
+        elif point_index == len(path) - 1:
+            return [0, predicted_y - y[point_index - 1]]
+
+    def create_vector_field(self, path_points, vec_fiel, x, y, threshold_distance):
         vector_field = [[0 for j in range(y)] for i in range(x)]
-        print("size of path points: ", len(path_points))
-        print(path_points)
-        print("Tanget list: ", tangents)
-
         for i in range(len(vec_fiel)):
             for j in range(len(vec_fiel[0])):
                 cell = vec_fiel[i][j]
                 # find all the points close to tolerance
                 indices_list = self.is_close_to_path(cell, path_points, threshold_distance)
-                print("Points close: ", indices_list)
-                chosen_tangent = []
-                chosen_tangent = indices_list
-                if chosen_tangent == [] or chosen_tangent == np.array([]):
-                    continue
-                vector_field[i][j] = tangents[chosen_tangent[0]][chosen_tangent[1]]
-
-        print("inside vreatins: ", vector_field)
+                #closest_point = path_points[indices_list[0]]
+                if indices_list:
+                    #vector_field[i][j] = tangents[indices_list[0]]
+                    vector_field[i][j] = self.get_smoothed_direction(path_points, indices_list[0], 60)
+                    #t = self.get_local_regression_direction(path_points, indices_list[0], 60, 1)
+                    #print("The result of local regression is: ", t)
+                    #vector_field[i][j] = t
+                else:
+                    vector_field[i][j] = [0, 0]
         return vector_field
 
     @staticmethod
     def is_close_to_path(cell_center, path_points, threshold_distance):
+        # threshold distance is the distance from the center of the cell center constraint by the size of the package
         distances = []
         for p in path_points:
-            distances.append(sq(abs((cell_center[0] - p[0]) ^ 2 + (cell_center[1] - p[1]) ^ 2)))
+            distances.append(sq(abs((cell_center[0] - p[0]) ** 2 + (cell_center[1] - p[1]) ** 2)))
         dist = []
         for d in range(len(distances)):
             if distances[d] < threshold_distance:
@@ -277,15 +374,20 @@ class Table_preview(QWidget):
         if event.type() == QEvent.MouseMove:
             if self.drawing:
                 current_point = self.view.mapToScene(event.pos())
+                try:
+                    self.coor_list[self.coor_index].append([current_point.x(), current_point.y()])
+                except IndexError:
+                    self.coor_index -= 1
+                    self.coor_list[self.coor_index].append([current_point.x(), current_point.y()])
                 if self.last_point is not None:
                     self.draw_on_scene(self.last_point, current_point)
-                    self.coor_list[self.coor_index].append([event.pos().x(), event.pos().y()])
+
                 self.last_point = current_point
         elif event.type() == QEvent.MouseButtonPress:
             if event.button() == Qt.LeftButton:
                 self.drawing = True
                 self.last_point = self.view.mapToScene(event.pos())
-                self.coor_list.append([[event.pos().x(), event.pos().y()], ])
+                self.coor_list.append([[self.last_point.x(), self.last_point.y()], ])
         elif event.type() == QEvent.MouseButtonRelease:
             self.coor_index += 1
             self.path_index += 1
@@ -296,8 +398,9 @@ class Table_preview(QWidget):
         return super().eventFilter(obj, event)
 
     def draw_on_scene(self, start_point, end_point):
+        self.pen_size = 20
         # Draw on the foreground scene
-        pen = QPen(Qt.red, 2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+        pen = QPen(Qt.red, self.pen_size, Qt.DotLine, Qt.RoundCap, Qt.RoundJoin)
         path = QPainterPath()
         path.moveTo(start_point)
         path.lineTo(end_point)
