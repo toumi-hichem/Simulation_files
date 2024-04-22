@@ -1,6 +1,10 @@
 import os, subprocess, asyncio, platform
 
 
+# TODO: change floor size with table size
+# TODO: dynamically add input and output conveyors
+
+
 class SFVec:
     # TODO: sfvec to sfvec assignment, same for SFString
     def __init__(self, val):
@@ -85,6 +89,29 @@ class SFString:
         return f'"{self.val}"'  # .replace('.', '_')
 
 
+class DistSensor:
+    lookuptable = [[0.012, 0, 0], [0.1, 1, 0]]
+    lookup_table = [SFVec(lookuptable[0]), SFVec(lookuptable[1])]
+
+    def __init__(self, translation, rotation, x, y, c=0):
+        self._translation = translation if isinstance(translation, SFVec) else SFVec(translation)
+        self._rotation = rotation if isinstance(rotation, SFVec) else SFVec(rotation)
+        self._name = SFString(f"cell_{x}_{y}_dist_{c}")
+
+        self._core_string = f'''DEF {self._name.no_quotes()} DistanceSensor {{
+              translation {self._translation}
+              rotation {self._rotation}
+              name {self._name.yes_quotes()}
+              lookupTable [
+                {self.lookup_table[0]}
+                {self.lookup_table[1]}
+              ]
+            }}'''
+
+    def __str__(self):
+        return self._core_string
+
+
 class Cell:
 
     def __init__(self, x, y, translation, wheel_shape, cylinder_shape):
@@ -104,6 +131,8 @@ class Cell:
 
         self.name_body = self.name + "_body"
 
+        self._dist_sensor = DistSensor([0, 0, 0.1], [0, 1, 0, -1.5708003061004252], x, y)
+
         self._core_string = \
             f'''DEF {self.name.no_quotes()} Pose {{
     translation {self.translation}
@@ -112,6 +141,7 @@ class Cell:
           children [
             Group {{
               children [
+                {self._dist_sensor}
                 CadShape {{
                   url [
                     {self.cylinder_shape.yes_quotes()}
@@ -417,7 +447,6 @@ class Robot:
         result = self.execute_command(command)
         print(result)
         print('Closing controller.')
-
 
     def set_default_value(self):
         self._default_values['filename'] = self.filename
