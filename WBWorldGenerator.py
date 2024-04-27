@@ -1,5 +1,3 @@
-import os, subprocess, asyncio, platform
-
 
 # TODO: change floor size with table size
 # TODO: dynamically add input and output conveyors
@@ -429,24 +427,6 @@ class Robot:
         with open(self.write_filename, 'w') as f:
             f.write(str(self))
 
-    def start_controller(self, x, y, o):
-        # todo:test later
-        print(f'Starting controller with parameters {x}, {y}, {o}')
-        self.webots_controller_exe_file = "\msys64\mingw64\bin\webots-controller.exe"
-        self.controller_launcher_file_location = os.path.join(os.environ['WEBOTS_HOME'],
-                                                              self.webots_controller_exe_file)
-        self.options = f"--robot-name=cell_{x}_{y}"
-        self.controller_file_location = r"C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\cell_controller_0_2\cell_controller_0_2.py"
-        self.launch_controller_string = fr'{self.controller_launcher_file_location} {self.options} '
-        self.backup_string = fr'"%WEBOTS_HOME%\msys64\mingw64\bin\webots-controller.exe" --robot-name=main_robot "C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\cell_controller_0_2\cell_controller_0_2.py"'
-        print('Launching string: ', self.backup_string)
-        print('cwd: ', os.getcwd())
-        # fr'"%WEBOTS_HOME%\msys64\mingw64\bin\webots-controller.exe" --robot-name=main_robot "C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\cell_controller_0_2\cell_controller_0_2.py"'
-
-        command = self.backup_string
-        result = self.execute_command(command)
-        print(result)
-        print('Closing controller.')
 
     def set_default_value(self):
         self._default_values['filename'] = self.filename

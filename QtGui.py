@@ -1,16 +1,16 @@
 import json
 import math
 import pickle
+from shared_data import SharedData
 
 # import statsmodels.api as sm
 import win32api
 from math import cos, sin, radians
-from math import sqrt as sq
 import numpy as np
 import matplotlib.pyplot as plt
 from PyQt5.uic import loadUi
 from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow, QSizePolicy, QListView, QGraphicsPixmapItem, QComboBox, \
-    QProgressBar
+    QProgressBar, QTabWidget
 import sys
 from WBWorldGenerator import Robot
 from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsView, QVBoxLayout, QPushButton, QSpinBox, \
@@ -20,27 +20,144 @@ from PyQt5.QtGui import QBrush, QPen, QPolygonF, QPainter, QImage, QPixmap, QPai
     QStandardItemModel, QCursor, QGuiApplication, QTransform
 from PyQt5.QtCore import Qt, QPointF, QLineF, QEvent, QRectF, pyqtSlot, QPropertyAnimation, QAbstractAnimation, \
     QEasingCurve, QTimer, QPoint
+from PathFinding import CelluvoyerGrid
 
 
-# TODO: Create a side tab which varies the mouse painter size to accommodate different package sizes.
+# TODO: Create a cell editor table for color, dimensions ....
 # TODO: Write a setup.
-# TODO: If two straight path crossed, take their average instead of one over the other.
 # TODO: maybe even exclude individual engines if not inside bounds to save energy, need hexagon class
-# TODO: Math for the speed of a package with mass m above the cell
-# TODO: Touchsensor
-# TODO: Package tracking with touchsensor
 # TODO: Handle multiple packages
-# TODO:
 
-def get_hexagon(x, y, length):
-    starting_angle = 30
-    angle_between = 60
-    poly = QPolygonF()
 
-    for i in range(6):
-        poly << QPointF(cos(radians(starting_angle + angle_between * i)),
-                        sin(radians(starting_angle + angle_between * i)))
-    return poly
+class Hexagon(QGraphicsPolygonItem):
+    def __init__(self, center_x, center_y, vector_dir=math.pi, show_arrows=True, highligh=False, hex_size=40, *__args):
+        super().__init__(*__args)  # TODO: set obstacle/highlight/selected priorities
+        # Hexagon
+        self.hex_size = hex_size
+        self.center_x = center_x
+        self.center_y = center_y
+        self.brush = None
+        self.pen = None
+        self._highlight = False
+        self._selected = False
+        self._obstacle = False
+
+        # Styles
+        self.default_brush = QBrush(QColor("dark blue"))
+        self.default_pen = QPen(QColor("aqua"))
+
+        self.highlight_brush = QBrush(QColor("lightblue"))
+        self.highlight_pen = QPen(QColor("white"))
+
+        self.vector_pen = QPen(QColor("yellow"))
+
+        self.select_brush = QBrush(QColor("orange"))
+        self.select_pen = QPen(QColor("white"))
+
+        self.obstacle_brush = QBrush(QColor("grey"))
+        self.obstacle_pen = QPen(QColor("white"))
+
+        # Vectors
+        self.vector_length = self.hex_size / 2
+        self.vector_dir = vector_dir
+        self.show_arrows = show_arrows
+
+        self._core = self.create()
+        self.setPolygon(self._core)
+        self.setFlag(QGraphicsItem.ItemIsSelectable, True)
+        self.setAcceptHoverEvents(True)
+
+        self.style_hex()
+        self._arrow = self.create_arrow() if self.vector_dir and self.show_arrows else []
+
+        self._content = [self, ] + self._arrow
+        self.is_hovered = False
+
+        self.highlight = highligh
+
+    def create(self):
+        points = []
+        for i in range(6):
+            angle_deg = 60 * i + 30
+            angle_rad = radians(angle_deg)
+            x = self.center_x + self.hex_size * cos(angle_rad)
+            y = self.center_y + self.hex_size * sin(angle_rad)
+            points.append(QPointF(x, y))
+        return QPolygonF(points)
+
+    def style_hex(self):
+        self.setPen(self.default_pen)
+        self.setBrush(self.default_brush)
+
+    def create_arrow(self):
+        self.style_arrow()
+        vec_x_end = self.center_x + self.vector_length * cos(self.vector_dir)
+        vec_y_end = self.center_y + self.vector_length * sin(self.vector_dir)
+        line = QGraphicsLineItem(self.center_x, self.center_y, vec_x_end, vec_y_end)
+
+        arrow_angle = self.vector_dir + math.pi * (3 / 4)
+        arrow_right = QGraphicsLineItem(vec_x_end, vec_y_end,
+                                        vec_x_end + ((self.vector_length / 2) * cos(arrow_angle)),
+                                        vec_y_end + ((self.vector_length / 2) * sin(arrow_angle)))
+        arrow_angle -= math.pi * (3 / 4) * 2
+        arrow_left = QGraphicsLineItem(vec_x_end, vec_y_end,
+                                       vec_x_end + ((self.vector_length / 2) * cos(arrow_angle)),
+                                       vec_y_end + ((self.vector_length / 2) * sin(arrow_angle)))
+
+        line.setPen(self.vector_pen)
+        arrow_left.setPen(self.vector_pen)
+        arrow_right.setPen(self.vector_pen)
+
+        return [line, arrow_left, arrow_right]
+
+    def style_arrow(self):
+        self.vector_pen = QPen(QColor("yellow"))
+
+    @property
+    def content(self):
+        return self._content
+
+    @property
+    def highlight(self):
+        return self._highlight
+
+    @property
+    def selected(self):
+        return self._selected
+
+    @property
+    def obstacle(self):
+        return self._obstacle
+
+    @highlight.setter
+    def highlight(self, value):
+        self._highlight = value
+        if value:
+            self.setBrush(self.highlight_brush)
+            self.setPen(self.highlight_pen)
+        else:
+            self.setBrush(self.default_brush)
+            self.setPen(self.default_pen)
+
+    @selected.setter
+    def selected(self, value):
+        self._selected = value
+        if self._selected:
+            self.setBrush(self.select_brush)
+            self.setPen(self.select_pen)
+        else:
+            self.setBrush(self.default_brush)
+            self.setPen(self.default_pen)
+
+    @obstacle.setter
+    def obstacle(self, value):
+        self._obstacle = value
+        if self._obstacle:
+            self.setBrush(self.obstacle_brush)
+            self.setPen(self.obstacle_pen)
+        else:
+            self.setBrush(self.default_brush)
+            self.setPen(self.default_pen)
 
 
 class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
@@ -55,6 +172,9 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
         self.y_spacing = self.hex_size * 1.5
         self.vector_length = self.hex_size / 2
         self._positions = []
+        self._hexs_: list[list[Hexagon]] = []
+        self._obstacle: list[list[bool]] = []
+        self._selected: list[list[bool]] = []
 
         self.vector_pen = QPen(QColor("yellow"))
         self.vector_brush = QBrush(QColor('blue'))
@@ -62,11 +182,8 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
 
         self.pen = QPen(QColor("green"))
         self.brush = QBrush(QColor('blue'))
-
         self.show_arrows = show_arrows
         self.create_table(0, 0, rows, cols)  # TODO: replace x and  with table position
-
-        # self.setup_background(rows, cols, cell_width, cell_height)
 
     def create_hexagon(self, center_x, center_y):
         points = []
@@ -82,55 +199,60 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
     def positions(self):
         return self._positions
 
+    @property
+    def hexs(self):
+        return self._hexs_
+
+    @hexs.setter
+    def hexs(self, value):
+        for line in range(len(self.hexs)):
+            for cell in range(len(self.hexs[line])):
+                self.hexs[line][cell].highlight = value[line][cell]
+
+    @property
+    def obstacle(self):
+        for line in range(len(self.hexs)):
+            self._obstacle.append([])
+            for cell in range(len(self.hexs[line])):
+                self._obstacle[line].append(self.hexs[line][cell].obstacle)
+        return self._obstacle
+
+    @obstacle.setter
+    def obstacle(self, value):
+        for line in range(len(self.hexs)):
+            for cell in range(len(self.hexs[line])):
+                self._obstacle[line][cell] = value[line][cell]
+
+    def highlight_point(self, cor, val=True, obstacle=False):
+        if obstacle:
+            self.hexs[cor[0]][cor[1]].obstacle = val
+        else:
+            self.hexs[cor[0]][cor[1]].highlight = val
+
     def create_table(self, x, y, x_times, y_times):
         for i in range(x_times):
             self._positions.append([])
+            self._hexs_.append([])
             for j in range(y_times):
-                null_arrow = False
-                center_x = x + self.x_spacing * i + (self.hex_size * 0.9 if j % 2 == 0 else 0) + self.spacing
-                center_y = y + self.y_spacing * j + self.spacing
-                self._positions[i].append([center_x, center_y])
-
-                hexagon = QGraphicsPolygonItem(self.create_hexagon(center_x, center_y))
-                hexagon.setPen(self.pen)
-                hexagon.setBrush(self.brush)
-                self.addToGroup(hexagon)
+                center_x = x + self.x_spacing * i + (self.hex_size * 0.9 if j % 2 == 0 else 0)
+                center_y = y + self.y_spacing * j
 
                 # Displaying the vector
                 if self.angle_field is not None:
                     t = self.angle_field[i][j]
                     if t[0] is None:
-                        continue
+                        self.vector_dir = None
                     else:
-                        vector = np.array(t[1])
+                        vector = np.array(t)
                         angle_rad = np.arccos(
                             np.dot(vector, [1, 0]) / (np.linalg.norm(vector) * np.linalg.norm([1, 0])))
-                        # radians to degrees
-                        angle_deg = np.degrees(angle_rad)
-                        self.vector_dir = angle_rad  # math.atan2(*t[1])
-                # convert self.vector_dir to an angle
-                vec_x_end = center_x + self.vector_length * cos(self.vector_dir)
-                vec_y_end = center_y + self.vector_length * sin(self.vector_dir)
-                line = QGraphicsLineItem(center_x, center_y, vec_x_end, vec_y_end)
-                line.setPen(self.vector_pen)
+                        self.vector_dir = angle_rad
 
-                arrow_angle = self.vector_dir + math.pi * (3 / 4)
-                arrow_right = QGraphicsLineItem(vec_x_end, vec_y_end,
-                                                vec_x_end + ((self.vector_length / 2) * cos(arrow_angle)),
-                                                vec_y_end + ((self.vector_length / 2) * sin(arrow_angle)))
-                arrow_angle -= math.pi * (3 / 4) * 2
-                arrow_left = QGraphicsLineItem(vec_x_end, vec_y_end,
-                                               vec_x_end + ((self.vector_length / 2) * cos(arrow_angle)),
-                                               vec_y_end + ((self.vector_length / 2) * sin(arrow_angle)))
-
-                arrow_left.setPen(self.vector_pen)
-                arrow_right.setPen(self.vector_pen)
-
-                if self.show_arrows and not null_arrow:
-                    self.addToGroup(line)
-                    self.addToGroup(arrow_right)
-                    self.addToGroup(arrow_left)
-        print("All positions: ", self.positions)
+                hexagon = Hexagon(center_x, center_y, vector_dir=self.vector_dir, show_arrows=self.show_arrows)
+                self._positions[i].append([center_x, center_y])
+                self._hexs_[i].append(hexagon)
+                for c in hexagon.content:
+                    self.addToGroup(c)
 
 
 class Table_preview(QWidget):
@@ -138,12 +260,23 @@ class Table_preview(QWidget):
 
     def __init__(self, *args):
         super().__init__(*args)
+        self.select_start = None
+        self.select_end = None
+        self.select_obstacle = None
+        print(F"Accessing shared data named: {SharedData.shrm_name}")
+        try:
+            self.shared_mem = SharedData(name=SharedData.shrm_name, create=True)
+        except FileExistsError:
+            self.shared_mem = SharedData(name=SharedData.shrm_name, create=False)
+        self._shared_data = {}
+        self._initial_info = {}
+
         self.drag_rectangle = None
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self._package_size = 20
         self.show_arrows = False
         self.angle_field = None
-        self._package_size = 10
+        self._package_size = 60
 
         # hover constants
         self.hover_with_mouse = False
@@ -174,6 +307,21 @@ class Table_preview(QWidget):
         self.last_point = None
         self.drawing = False
 
+    def update_package_location(self):
+        # TODO: Use QTimer, maybe 200ms? More, focus on performance, sim is too slow.
+        # TODO: set the trigger for launch, as well as the end when the simulation is finished
+        # TODO: create supervisor to place objects as well as know when simulation is finished
+        """Runs periodically using QTimer.
+            Extracts sensor data from shared memory and updates hexagon highlight state.
+            Will be first launched after self.launched_button is triggered.
+            """
+        try:
+            self._shared_data = self.shared_mem.retrieve_data()
+            self.background_item: BackgroundItem
+            self.background_item.hexs = self._shared_data[SharedData.sensor_field]
+        except:
+            print("can't update package progress")
+
     def setup_buttons(self):
         layout = QVBoxLayout(self)
         layout.addWidget(self.view)
@@ -187,6 +335,8 @@ class Table_preview(QWidget):
 
         self.calculate.setObjectName('calculate_button')
         self.launch.setObjectName('launch_button')
+        self.launch.setCheckable(True)
+        self.launch.setChecked(False)
 
         self.clear_drawing.clicked.connect(self.update_foreground_scene)
         self.calculate.clicked.connect(self.calculate_path)
@@ -202,10 +352,29 @@ class Table_preview(QWidget):
             layout.addWidget(button_widget)
         self.setLayout(layout)
 
+    def setup_auto_button(self, start, end, obstacle):
+        self.select_start: QPushButton = start
+        self.select_end: QPushButton = end
+        self.select_obstacle: QPushButton = obstacle
+
+        self.select_start.clicked.connect(lambda: self.highlight_after_depress(self.select_start))
+        self.select_end.clicked.connect(lambda: self.highlight_after_depress(self.select_end))
+        self.select_obstacle.clicked.connect(lambda: self.highlight_after_depress(self.select_obstacle))
+        print(f'This is button setup, the button is: {self.select_start}')
+
+    def highlight_after_depress(self, button: QPushButton):
+        print(f"Initial info: {self.initial_info}")
+        print(self._initial_info)
+        if not button.isChecked():
+            name: str = button.objectName()
+            if name == 'obstacle':
+                self.background_item.highlight_point(self.initial_info[name], True, obstacle=True)
+            else:
+                self.background_item.highlight_point(self.initial_info[name], True)
+
     def save_vec_field_data(self):
         # TODO: This only saves one list at a time, fix later
         t = self.numpy_array_to_list(self.angle_field)
-        print('angle field: ', t)
         with open(self.json_vec_field_filename, 'wb') as f:
             pickle.dump(t, f)
 
@@ -227,9 +396,10 @@ class Table_preview(QWidget):
         vec_fiel = self.background_item.positions
         # TODO: Add threshold to gui
         self.angle_field = self.create_vector_field(points, vec_fiel, self.table_rows, self.table_cols)
-        self.update_background_scene() # TODO: Create option not to delete rects + lines
+        self._shared_data[SharedData.vector_field] = self.angle_field
+        self.shared_mem.store_data(self._shared_data)
+        self.update_background_scene()  # TODO: Create option not to delete rects + lines
         self.save_vec_field_data()
-
 
         self.scene.addItem(self.background_item)
         self.view.setScene(self.scene)
@@ -239,30 +409,9 @@ class Table_preview(QWidget):
         for i in range(len(vec_fiel)):
             for j in range(len(vec_fiel[0])):
                 cell = vec_fiel[i][j]
-                # find all the points close to tolerance
-                # closest_point = path_points[indices_list[0]]
-
-                # vector_field[i][j] = tangents[indices_list[0]]
-                # vector_field[i][j] = self.get_smoothed_direction(path_points, indices_list[0], 60)
-                # t = self.get_local_regression_direction(path_points, indices_list[0], 60, 1)
-                # print("The result of local regression is: ", t)
-                # vector_field[i][j] = t
                 vector_field[i][j] = self.get_distance_and_tangent(cell, path_points, self._package_size)
 
         return vector_field
-
-    @staticmethod
-    def is_close_to_path(cell_center, path_points, threshold_distance):
-        # threshold distance is the distance from the center of the cell center constraint by the size of the package
-        distances = []
-        for p in path_points:
-            distances.append(sq(abs((cell_center[0] - p[0]) ** 2 + (cell_center[1] - p[1]) ** 2)))
-        dist = []
-        for d in range(len(distances)):
-            if distances[d] < threshold_distance:
-                dist.append(d)
-        dist.sort(key=lambda x: distances[x])
-        return dist
 
     def get_distance_and_tangent(self, cell_center, waypoints, threshold):
         """
@@ -297,7 +446,7 @@ class Table_preview(QWidget):
         if min_distance <= threshold:
             # normalize
             magnitude = np.linalg.norm(closest_tangent)  # Calculate the magnitude of the vector
-            return min_distance, closest_tangent / magnitude
+            return closest_tangent / magnitude
         else:
             return None, None
 
@@ -332,6 +481,8 @@ class Table_preview(QWidget):
         self.scene.clear()
         self.scene.addItem(self.background_item)
         self.view.setScene(self.scene)
+        self._shared_data[SharedData.sensor_field] = [[False for j in range(self.table_cols)] for i in
+                                                      range(self.table_rows)]
 
     def update_foreground_scene(self):
         self.scene.clear()
@@ -353,24 +504,19 @@ class Table_preview(QWidget):
         if button.isChecked():
             # start placing waypoints
             self.drawing = True
-            self.timer = QTimer(self)
-            self.timer.setInterval(100)  # Call every 100 milliseconds
-            self.timer.timeout.connect(self.update_and_draw_rectangle)
-            self.timer.start()
             self.coor_list.append([])
             print("Starting to record a new list...")
 
             # square is stuck to mouse, placed when clicked, won't stop until clicking on waypoint button or ESC key
         else:
             # stop placing waypoints and expect a list of waypoints
-            self.timer.stop()
-            print("Now list recorded. showing: ", self.coor_list[self.coor_index])
+            # self.timer.stop()
             self.drawing = False
             self.last_point = None
             self.coor_index += 1
 
     def mousePressEvent(self, event):
-        # TODO: draw a phantom line between two squares
+        print("Clicked inside table_preview")
         if event.type() == QEvent.MouseButtonPress:
             if event.button() == Qt.LeftButton and self.drawing:
                 # self.last_point = self.view.mapToScene(event.pos())
@@ -385,6 +531,18 @@ class Table_preview(QWidget):
                     line.setPen(QPen(Qt.red, 2, Qt.DotLine, Qt.RoundCap, Qt.RoundJoin))
                     self.scene.addItem(line)
                 self.last_point = current_point
+        if event.type() == QEvent.MouseButtonPress and self.select_start.isChecked():
+            self._initial_info['start'] = self.closest_grid_center(self.background_item.positions, self.get_cursor_position_in_view())[1]
+
+        elif event.type() == QEvent.MouseButtonPress and self.select_end.isChecked():
+            self._initial_info['end'] = \
+                self.closest_grid_center(self.background_item.positions, self.get_cursor_position_in_view())[1]
+        elif event.type() == QEvent.MouseButtonPress and self.select_obstacle.isChecked():
+            if self.initial_info['obstacle'] is None:
+                self._initial_info['obstacle'] = []
+            self._initial_info['obstacle'].append(
+                self.closest_grid_center(self.background_item.positions, self.get_cursor_position_in_view())[1])
+        print(f"Info: {self._initial_info}")
 
     def get_cursor_position_in_view(self):
         # cursor_pos = win32api.GetCursorPos()
@@ -396,6 +554,31 @@ class Table_preview(QWidget):
         pos = self.view.viewport().mapFromGlobal(QCursor.pos())  # Get viewport that is GraphicView
         scene_pos = self.view.mapToScene(pos)  # Get scene coordinates, with respect to scrolling and same plane as hex
         return scene_pos
+
+    @staticmethod
+    def closest_grid_center(grid_centers: list[list[list]], point):
+        min_distance = float('inf')
+        closest_center = None
+        closest_indices = None
+
+        # Iterate through each row in the 2D array
+        for i, row in enumerate(grid_centers):
+            # Iterate through each grid center in the row
+            for j, center in enumerate(row):
+                # Calculate the distance between the current grid center and the point
+                distance = math.sqrt((center[0] - point.x()) ** 2 + (center[1] - point.y()) ** 2)
+
+                # Update the closest center if the current distance is smaller
+                if distance < min_distance:
+                    min_distance = distance
+                    closest_center = center
+                    closest_indices = (i, j)
+
+        return closest_center, closest_indices
+
+    @property
+    def initial_info(self):
+        return self._initial_info
 
     def update_and_draw_rectangle(self):
         # TODO: solve rect offset issues
@@ -410,7 +593,6 @@ class Table_preview(QWidget):
 
         self.drag_rectangle.setPos(cursor_pos.x(), cursor_pos.y())
         self.drag_rectangle.setVisible(True)
-        print("Rect at: ", cursor_pos.x(), cursor_pos.y())
 
     def create_and_show_rectangle(self, current_point):
         drag_rectangle = QGraphicsRectItem(current_point.x() - self._package_size / 2,
@@ -439,9 +621,6 @@ class Table_preview(QWidget):
     def pen_size(self):
         return self._package_size
 
-    def set_package_size(self, val):
-        self._package_size = val
-
 
 class FoldableToolBar(QWidget):
     def __init__(self, parent=None):
@@ -465,13 +644,25 @@ class FoldableToolBar(QWidget):
         self.set_content()
 
     def set_content(self):
-        lay = QVBoxLayout(self.content_widget)  # main layout
+        self.tab = QTabWidget()
+        self.tab.setObjectName("Edit_area_tab")
+        self.tab_manual = QWidget()
+        self.tab_auto = QWidget()
+        self.tab.addTab(self.tab_manual, "Manual")
+        self.tab.addTab(self.tab_auto, "Automatic")
+        # manual Tab
+        lay = QVBoxLayout(self.tab_manual)
         # box size spin box
         self.package_size_spin_box = QSpinBox()
         self.package_size_spin_box.setMinimum(10)
         self.package_size_spin_box.setValue(60)
         self.package_size_spin_box.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-
+        self.spin_box_label = QLabel("Package size: ")
+        hspin_label_lay = QHBoxLayout()
+        hspin_label_lay.addWidget(self.spin_box_label)
+        hspin_label_lay.addWidget(self.package_size_spin_box)
+        self.spin_box_label_widget = QWidget()
+        self.spin_box_label_widget.setLayout(hspin_label_lay)
         # button to start putting waypoints
         self.waypoint_pins = QPushButton("Waypoints")
 
@@ -490,53 +681,102 @@ class FoldableToolBar(QWidget):
         self.list_view.setModel(self.model)
 
         # fill the layout
-        lay.addWidget(self.package_size_spin_box)
+        lay.addWidget(self.spin_box_label_widget)
         lay.addWidget(self.waypoint_pins)
         lay.addWidget(self.pick_wayp_list)  # TODO: connect indexChanged to model listview different self.coor_list
         lay.addWidget(self.list_view)
 
-        self.layout.addWidget(self.content_widget)
+        # automatic Tab
+        lay_a = QVBoxLayout(self.tab_auto)
+        self.automatic_paths = QComboBox()
+        self.automatic_list = QListView()
+        self.automatic_model = QStandardItemModel()
 
-    def insert_item_to_list(self, item):
-        self.model.appendRow(QStandardItemModel(item))
+        self.select_start = QPushButton('start')
+        self.select_end = QPushButton('end')
+        self.select_obstacle = QPushButton('obstacle')
+        self.select_start.setCheckable(True)
+        self.select_end.setCheckable(True)
+        self.select_obstacle.setCheckable(True)
+        self.select_start.setObjectName('start')
+        self.select_end.setObjectName('end')
+        self.select_obstacle.setObjectName('obstacle')
+
+        self.auto_button_w = QWidget()
+        self.auto_button_lay = QHBoxLayout(self.auto_button_w)
+        self.auto_button_lay.addWidget(self.select_start)
+        self.auto_button_lay.addWidget(self.select_end)
+        self.auto_button_lay.addWidget(self.select_obstacle)
+
+        self.automatic_list.setModel(self.automatic_model)
+
+        self.auto_package_size_spin_box = QSpinBox()
+        self.auto_package_size_spin_box.setMinimum(10)
+        self.auto_package_size_spin_box.setValue(60)
+        self.auto_package_size_spin_box.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.auto_spin_box_label = QLabel("Package size: ")
+        auto_hspin_label_lay = QHBoxLayout()
+        auto_hspin_label_lay.addWidget(self.auto_spin_box_label)
+        auto_hspin_label_lay.addWidget(self.auto_package_size_spin_box)
+        self.auto_spin_box_label_widget = QWidget()
+        self.auto_spin_box_label_widget.setLayout(auto_hspin_label_lay)
+
+        lay_a.addWidget(self.auto_spin_box_label_widget)
+        lay_a.addWidget(self.auto_button_w)
+        lay_a.addWidget(self.automatic_paths)
+        lay_a.addWidget(self.automatic_list)
+
+        self.layout.addWidget(self.tab)
+
+    def insert_item_to_list(self, item, manual=True, path=False):
+        if manual and not path:
+            self.model.appendRow(QStandardItemModel(item))
+        elif not manual and not path:
+            self.automatic_model.appendRow(QStandardItemModel(item))
+        elif manual and path:
+            self.pick_wayp_list.addItem(item)
+        elif not manual and path:
+            self.automatic_paths.addItem(item)
 
     def toggle_collapse(self):
         if self.is_collapsed:
             # self._expand_animation()
-            self.content_widget.show()
+            self.tab.show()
             self.setMaximumWidth(400)  # TODO: width too big, change after adding all widget to something smaller
             self.setMinimumWidth(400)
             self.header_label.setText(">")
         else:
             # self._collapse_animation()
-            self.content_widget.hide()
+            self.tab.hide()
             self.setMaximumWidth(50)
             self.setMinimumWidth(50)
             self.header_label.setText("<")
         self.is_collapsed = not self.is_collapsed
 
     def _collapse_animation(self):
-        print(f"_collapse_animation, width: {self.content_widget.width()}")
-        animation = QPropertyAnimation(self.content_widget, b"minimumWidth")
+        print(f"_collapse_animation, width: {self.tab.width()}")
+        animation = QPropertyAnimation(self.tab, b"minimumWidth")
         animation.setDuration(250)
-        animation.setStartValue(self.content_widget.width())
+        animation.setStartValue(self.tab.width())
         animation.setEndValue(50)
         animation.setEasingCurve(QEasingCurve.Linear)
-        animation.finished.connect(lambda: self.content_widget.hide())
+        animation.finished.connect(lambda: self.tab.hide())
         animation.start()
 
     def _expand_animation(self):
-        print(f"_expand_animation, width: {self.content_widget.width()}")
-        animation = QPropertyAnimation(self.content_widget, b"minimumWidth")
+        print(f"_expand_animation, width: {self.tab.width()}")
+        animation = QPropertyAnimation(self.tab, b"minimumWidth")
         animation.setDuration(250)
         animation.setStartValue(0)
-        animation.setEndValue(self.content_widget.width())
+        animation.setEndValue(self.tab.width())
         animation.setEasingCurve(QEasingCurve.Linear)
-        animation.finished.connect(lambda: self.content_widget.show())
+        animation.finished.connect(lambda: self.tab.show())
         animation.start()
 
 
 class MainUi(QMainWindow):
+    sensor_refresh_rate = 200  # ms
+
     def __init__(self, robot: Robot):
         super(MainUi, self).__init__()
         ui_filename = r'C:\Users\toupa\Desktop\ESE - S1\PFE\Simulation_files\ui_files\window_0_1.ui'
@@ -547,13 +787,18 @@ class MainUi(QMainWindow):
         self.show_arrows = False
         self.stackedWidget_3000: QStackedWidget = self.findChild(QStackedWidget, "stackedWidget_3000")
         self.stackedWidget_3000.setCurrentIndex(1)
-        self.table_preview = self.findChild(QWidget, 'show_table')
-        self.table_preview_2 = self.findChild(QWidget, 'table_draw_enabled')
+        self.table_preview: Table_preview = self.findChild(QWidget, 'show_table')
+        self.table_preview_2: Table_preview = self.findChild(QWidget, 'table_draw_enabled')
         self.foldable_toolbar = self.findChild(QWidget, 'FoldableToolBar')
 
         self.initialize()
 
     def initialize(self):
+        start = self.findChild(QPushButton, 'start')
+        end = self.findChild(QPushButton, 'end')
+        obstacle = self.findChild(QPushButton, 'obstacle')
+        self.table_preview_2.setup_auto_button(start, end, obstacle)
+        self.table_preview.setup_auto_button(start, end, obstacle)
         self.setFocusPolicy(Qt.StrongFocus)
         self.installEventFilter(self)
         self.set_triggers()
@@ -619,15 +864,13 @@ class MainUi(QMainWindow):
             super().keyPressEvent(event)
 
     def set_triggers(self):
-        self.create_progressBar:QProgressBar = self.findChild(QProgressBar, "create_progressBar")
+        self.create_progressBar: QProgressBar = self.findChild(QProgressBar, "create_progressBar")
         self.create_progressBar.setValue(0)
         self.button_create.clicked.connect(self.create_webot_world_file)
         self.dimension_x.valueChanged.connect(self.update_table_preview)
         self.dimension_y.valueChanged.connect(self.update_table_preview)
         self.foldable_toolbar.package_size_spin_box.valueChanged.connect(
             lambda: self.table_preview_2.change_pen_size(self.foldable_toolbar.package_size_spin_box.value()))
-        self.foldable_toolbar.waypoint_pins.clicked.connect(lambda: self.table_preview_2.mouse_hover(
-            self.foldable_toolbar.waypoint_pins))
 
     def update_table_preview(self):  # TODO: deprecated, remove later
         raduis = 20
@@ -687,17 +930,62 @@ class MainUi(QMainWindow):
         # TODO: set table tran, rot, dimen .... default
 
     def set_table_preview(self):
-        self.calculate_button = self.findChild(QPushButton, 'calculate_button')
-        self.launch_button = self.findChild(QPushButton, 'launch_button')
+        self.calculate_button: QPushButton = self.findChild(QPushButton, 'calculate_button')
+        self.launch_button: QPushButton = self.findChild(QPushButton, 'launch_button')
+        self.launch_button.clicked.connect(lambda: self.communicate_with_simulation(self.launch_button))
+        self.tab_area: QTabWidget = self.findChild(QTabWidget, 'Edit_area_tab')
+        # TODO: When launch is checked:
+        #   - Supervisor communicates with QtGui
+        #   - Starts monitoring sensor data and updates cell highlight state
 
-        self.launch_button.clicked.connect(lambda: self.robot.start_controller(0, 0, 1))  # TODO: redo
-        # elipse = self.scene.addEllipse(20, 20, 200, 200, self.pen, self.brush_blue)
-        # poly = QPolygonF()
-        # poly = self.get_hexagon(0, 0, 20)
+    def communicate_with_simulation(self, button):
+        # TODO: When launch is checked:
+        #   - Supervisor communicates with QtGui
+        #   - Starts monitoring sensor data and updates cell highlight state
 
-        # self.scene.addPolygon(poly, self.pen, self.brush_blue)
-        # self.update_table_preview()
-        pass
+        # TODO: For automatic pathing:
+        if button.isChecked() and self.tab_area.currentIndex() == 0:
+            # when launching is checked the manual tab widget is active
+            self.get_sensor_data_timer = QTimer()
+            self.get_sensor_data_timer.setInterval(MainUi.sensor_refresh_rate)
+            self.get_sensor_data_timer.timeout.connect(self.table_preview_2.update_package_location)
+            self.get_sensor_data_timer.start()
+        elif not button.isChecked() and self.tab_area.currentIndex() == 0:
+            # abort launch for manual pathing
+            self.get_sensor_data_timer.stop()
+        elif button.isChecked() and self.tab_area.currentIndex() == 1:
+            # When launch in automatic mode
+            self.get_sensor_data_timer = QTimer()
+            self.get_sensor_data_timer.setInterval(MainUi.sensor_refresh_rate)
+            self.get_sensor_data_timer.timeout.connect(self.table_preview_2.update_package_location)
+            self.get_sensor_data_timer.start()
+            self.calculate_automatic_pathing(True)
+        elif not button.isChecked() and self.tab_area.currentIndex() == 1:
+            self.get_sensor_data_timer.stop(False)
+
+    def calculate_automatic_pathing(self, enabled):
+        if enabled:
+            self.background_item: BackgroundItem
+            # Get the grid
+            grid = self.table_preview_2.background_item.obstacle
+            print(f"The grid is: {grid}")
+            # Get start and end positions
+            self.table_preview_2: FoldableToolBar
+            d = self.table_preview_2.initial_info
+            start = d['start']
+            end = d['end']
+            obstacles = d['obstacles']
+            # put the manual obstacles
+            for obstacle in obstacles:
+                grid[obstacle[0]][obstacle[1]] = 1
+
+            # do the calculation
+            self.cell_grid = CelluvoyerGrid(grid)
+            paths = CelluvoyerGrid.a_star_search(self.cell_grid, start, end, max_paths=2)
+
+            print(f"The final path is: {paths}")
+            # send the command
+            # wait for feedback
 
     @property
     def default_values(self):

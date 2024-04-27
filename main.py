@@ -4,7 +4,8 @@ import sys
 from WBWorldGenerator import Robot
 from QtGui import MainUi
 from PyQt5.QtWidgets import QApplication
-
+import shared_data
+shared_data.create_shared_data()
 
 r'''
 deprecated
