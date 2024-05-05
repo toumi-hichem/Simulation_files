@@ -23,8 +23,24 @@ class CelluvoyerGrid:
         return 0 <= row < self.rows and 0 <= col < self.cols and self.grid[row][col] != 1  # 1 represents obstacle
 
     def get_neighbors(self, row, col):
+        '''neighbors = []
+        corners_permutation_one = [(-1, 0), (1, 0), (-1, 1), (0, 1), (-1, -1), (0, -1)]
+        corners_permutation_two = [(-1, 1), (-1, 0), (-1, 1), (1, 1), (1, 0), (1, -1)]
+        corners_permutation_three = [(-1, -1), (0, -1), (1, 0), (0, 1), (-1, 1), (-1, 0)]
+        corners_permutation_four = [(-1, -1), (-1, 0), (0, 1), (1, -1), (1, -1), (0, -1)]
+        for drow, dcol in corners_permutation_four:
+            new_row = row + drow
+            new_col = col + dcol
+            if self.is_valid(new_row, new_col):
+                neighbors.append((new_row, new_col))
+        return neighbors'''
         neighbors = []
-        for drow, dcol in [(-1, 0), (1, 0), (-1, 1), (0, 1), (-1, -1), (0, -1)]:
+        # Define movement based on even or odd rows (honeycomb grid)
+        if col % 2 == 0:  # Even row
+            corners_permutation = [[0, -1], [-1, 0], [0, 1], [1, 1], [1, 0], [1, -1]]
+        else:  # Odd row
+            corners_permutation = [[-1, -1], [-1, 0], [-1, 1], [0, 1], [1, 0], [0, -1]]
+        for drow, dcol in corners_permutation:
             new_row = row + drow
             new_col = col + dcol
             if self.is_valid(new_row, new_col):
@@ -164,14 +180,14 @@ class CelluvoyerGrid:
     [0, 0, 0, 0, 0, 0],
 ]'''
 grid = [
-    [0, 0, 0, 0, 0, 1],
-    [0, 0, 0, 1, 0, 0],
     [0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 2],
+    [0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0],
 ]
-start = (2, 1)
-end = (4, 5)
+start = (0, 0)
+end = (4, 4)
 
 celluvoyer = CelluvoyerGrid(grid)
 paths = CelluvoyerGrid.a_star_search(celluvoyer, start, end, max_paths=2)

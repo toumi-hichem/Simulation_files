@@ -16,10 +16,8 @@ def SemaphoreWrapper(func):
 
     def wrapper(*args, **kwargs):
         sem.acquire()
-        print("Gained access")
         res = func(*args, **kwargs)
         sem.release()
-        print("relinquished access")
         return res
 
     return wrapper

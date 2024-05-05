@@ -30,17 +30,19 @@ from PathFinding import CelluvoyerGrid
 
 
 class Hexagon(QGraphicsPolygonItem):
-    def __init__(self, center_x, center_y, vector_dir=math.pi, show_arrows=True, highligh=False, hex_size=40, *__args):
+    # TODO: option to remake one cell at a time
+    def __init__(self, center_x, center_y, vector_dir=math.pi, show_arrows=True, highligh=0, hex_size=40, *__args):
         super().__init__(*__args)  # TODO: set obstacle/highlight/selected priorities
         # Hexagon
+        self._arrow = []
         self.hex_size = hex_size
         self.center_x = center_x
         self.center_y = center_y
         self.brush = None
         self.pen = None
-        self._highlight = False
+        self._highlight = highligh
         self._selected = False
-        self._obstacle = False
+        self._obstacle = 0
 
         # Styles
         self.default_brush = QBrush(QColor("dark blue"))
@@ -57,6 +59,12 @@ class Hexagon(QGraphicsPolygonItem):
         self.obstacle_brush = QBrush(QColor("grey"))
         self.obstacle_pen = QPen(QColor("white"))
 
+        self.start_brush = QBrush(QColor("light green"))
+        self.start_pen = QPen(QColor("while"))
+
+        self.end_brush = QBrush(QColor("red"))
+        self.end_pen = QPen(QColor("orange"))
+
         # Vectors
         self.vector_length = self.hex_size / 2
         self.vector_dir = vector_dir
@@ -68,12 +76,10 @@ class Hexagon(QGraphicsPolygonItem):
         self.setAcceptHoverEvents(True)
 
         self.style_hex()
-        self._arrow = self.create_arrow() if self.vector_dir and self.show_arrows else []
+        self.create_arrow()
 
         self._content = [self, ] + self._arrow
         self.is_hovered = False
-
-        self.highlight = highligh
 
     def create(self):
         points = []
@@ -89,13 +95,19 @@ class Hexagon(QGraphicsPolygonItem):
         self.setPen(self.default_pen)
         self.setBrush(self.default_brush)
 
-    def create_arrow(self):
+    def create_arrow(self, vector_dir=None):
+        if not vector_dir:
+            vector_dir = self.vector_dir
+        if not self.show_arrows:
+            self._arrow = []
+            self._content = [self, ] + self._arrow
+            return None
         self.style_arrow()
-        vec_x_end = self.center_x + self.vector_length * cos(self.vector_dir)
-        vec_y_end = self.center_y + self.vector_length * sin(self.vector_dir)
+        vec_x_end = self.center_x + self.vector_length * cos(vector_dir)
+        vec_y_end = self.center_y + self.vector_length * sin(vector_dir)
         line = QGraphicsLineItem(self.center_x, self.center_y, vec_x_end, vec_y_end)
 
-        arrow_angle = self.vector_dir + math.pi * (3 / 4)
+        arrow_angle = vector_dir + math.pi * (3 / 4)
         arrow_right = QGraphicsLineItem(vec_x_end, vec_y_end,
                                         vec_x_end + ((self.vector_length / 2) * cos(arrow_angle)),
                                         vec_y_end + ((self.vector_length / 2) * sin(arrow_angle)))
@@ -107,11 +119,26 @@ class Hexagon(QGraphicsPolygonItem):
         line.setPen(self.vector_pen)
         arrow_left.setPen(self.vector_pen)
         arrow_right.setPen(self.vector_pen)
-
-        return [line, arrow_left, arrow_right]
+        self._arrow = [line, arrow_left, arrow_right]
+        self._content = [self, ] + self._arrow
 
     def style_arrow(self):
         self.vector_pen = QPen(QColor("yellow"))
+
+    def specific_highlight(self, s_e):
+        print(f"Highlight: {s_e}")
+        if self.highlight:
+            self.setBrush(self.default_brush)
+            self.setPen(self.default_pen)
+            self.highlight = 0
+        else:
+            self.highlight = 1
+            if s_e == 'start':
+                self.setBrush(self.start_brush)
+                self.setPen(self.start_pen)
+            elif s_e == 'end':
+                self.setBrush(self.end_brush)
+                self.setPen(self.end_pen)
 
     @property
     def content(self):
@@ -132,12 +159,6 @@ class Hexagon(QGraphicsPolygonItem):
     @highlight.setter
     def highlight(self, value):
         self._highlight = value
-        if value:
-            self.setBrush(self.highlight_brush)
-            self.setPen(self.highlight_pen)
-        else:
-            self.setBrush(self.default_brush)
-            self.setPen(self.default_pen)
 
     @selected.setter
     def selected(self, value):
@@ -150,8 +171,9 @@ class Hexagon(QGraphicsPolygonItem):
             self.setPen(self.default_pen)
 
     @obstacle.setter
-    def obstacle(self, value):
-        self._obstacle = value
+    def obstacle(self, value: int):
+
+        self._obstacle = 1 if value else 0
         if self._obstacle:
             self.setBrush(self.obstacle_brush)
             self.setPen(self.obstacle_pen)
@@ -161,20 +183,36 @@ class Hexagon(QGraphicsPolygonItem):
 
 
 class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
-    def __init__(self, scene, rows, cols, cell_width, cell_height, show_arrows, angle_field=None):
+    def __init__(self, scene, rows, cols, cell_width, cell_height, show_arrows, path=None, angle_field=None):
         super().__init__()
         # 0, 0, cols * cell_width, rows * cell_height
         self.scene = scene
         self.angle_field = angle_field
+        self.path = path
+
+
         self.hex_size = 40  # Size of hexagons
-        self.spacing = -100  # Spacing between hexagons
         self.x_spacing = self.hex_size * 1.7
         self.y_spacing = self.hex_size * 1.5
         self.vector_length = self.hex_size / 2
+
+        self.rows = rows
+        self.cols = cols
+        self.initial_pos_x = self.rows * self.hex_size * 0.5
+        self.initial_pos_y = self.cols * self.hex_size * 0.5
+
         self._positions = []
         self._hexs_: list[list[Hexagon]] = []
-        self._obstacle: list[list[bool]] = []
-        self._selected: list[list[bool]] = []
+        self._obstacle: list[list[int]] = []
+        self._selected: list[list[int]] = []
+
+        # create_stuff
+        for i in range(self.rows):
+            self._positions.append([])
+            for j in range(self.cols):
+                center_x = self.initial_pos_x + self.x_spacing * i + (self.hex_size * 0.9 if j % 2 == 0 else 0)
+                center_y = self.initial_pos_y + self.y_spacing * j
+                self._positions[i].append([center_x, center_y])
 
         self.vector_pen = QPen(QColor("yellow"))
         self.vector_brush = QBrush(QColor('blue'))
@@ -183,7 +221,7 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
         self.pen = QPen(QColor("green"))
         self.brush = QBrush(QColor('blue'))
         self.show_arrows = show_arrows
-        self.create_table(0, 0, rows, cols)  # TODO: replace x and  with table position
+        self.create_table()  # TODO: replace x and  with table position
 
     def create_hexagon(self, center_x, center_y):
         points = []
@@ -205,40 +243,99 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
 
     @hexs.setter
     def hexs(self, value):
+        # TODO: Need better way to update it
         for line in range(len(self.hexs)):
             for cell in range(len(self.hexs[line])):
-                self.hexs[line][cell].highlight = value[line][cell]
+                self.hexs[line][cell].obstacle = 1 if value[line][cell] else 0
 
     @property
     def obstacle(self):
+        self._obstacle = []
         for line in range(len(self.hexs)):
             self._obstacle.append([])
             for cell in range(len(self.hexs[line])):
-                self._obstacle[line].append(self.hexs[line][cell].obstacle)
+                if self.hexs[line][cell].obstacle:
+                    self._obstacle[line].append(1)
+                else:
+                    self._obstacle[line].append(0)
         return self._obstacle
 
+    def clear_all_highlight(self):
+        for line in range(len(self.hexs)):
+            for cell in range(len(self.hexs[line])):
+                self.hexs[line][cell].highlight = 0
+                self.hexs[line][cell].selected = 0
+
+    def highlight_list(self, points, off=False):
+        for point in points[1:len(points) - 1]:
+            self.hexs[point[0]][point[1]].selected = 1 if not off else 0
+
     @obstacle.setter
-    def obstacle(self, value):
+    def obstacle(self, value: list[list[int]]):
         for line in range(len(self.hexs)):
             for cell in range(len(self.hexs[line])):
                 self._obstacle[line][cell] = value[line][cell]
 
-    def highlight_point(self, cor, val=True, obstacle=False):
-        if obstacle:
-            self.hexs[cor[0]][cor[1]].obstacle = val
-        else:
-            self.hexs[cor[0]][cor[1]].highlight = val
+    def highlight_point(self, cor, flip=True, obstacle=False, s_e='start'):
+        """Flips highlight"""
+        if isinstance(cor, dict):
+            t = 0
+            for line in range(len(self.hexs)):
+                for cell in range(len(self.hexs[line])):
+                    if (cell, line) == cor['start']:
+                        t += 1
+                        self.hexs[cell][line].specific_highlight('start')
+                    elif (cell, line) == cor['end']:
+                        t += 1
+                        self.hexs[cell][line].specific_highlight('end')
+                    elif 'obstacle' in cor.keys() and (cell, line) in cor['obstacle']:
+                        t += 1
+                        print("obstacle")
+                        self.hexs[cell][line].obstacle = 1
+                    print(f"Total highlight calls: {t}")
+        if isinstance(cor, tuple|list):
+            print(f"manual highlight, {s_e}")
+            if obstacle:
+                t = self.hexs[cor[0]][cor[1]].obstacle
+                self.hexs[cor[0]][cor[1]].obstacle = not t if flip else t
+            else:
+                self.hexs[cor[0]][cor[1]].specific_highlight(s_e)
 
-    def create_table(self, x, y, x_times, y_times):
-        for i in range(x_times):
-            self._positions.append([])
+    def create_table(self):
+        drawing_path, current_index, future_index = False, 0, 1
+        if self.path:
+            drawing_path = True
+        self._hexs_ = []
+        for i in range(self.rows):
             self._hexs_.append([])
-            for j in range(y_times):
-                center_x = x + self.x_spacing * i + (self.hex_size * 0.9 if j % 2 == 0 else 0)
-                center_y = y + self.y_spacing * j
-
+            for j in range(self.cols):
+                center_x = self.initial_pos_x + self.x_spacing * i + (self.hex_size * 0.9 if j % 2 == 0 else 0)
+                center_y = self.initial_pos_y + self.y_spacing * j
+                show_arrows = self.show_arrows
                 # Displaying the vector
-                if self.angle_field is not None:
+                if drawing_path:
+                    if (i, j) in self.path:
+                        current_index = self.path.index((i, j))
+                        if current_index == len(self.path) - 1:
+                            show_arrows = False
+                            self.vector_dir = None
+                        else:
+                            x_end, y_end = self.path[current_index]
+                            x_start, y_start = self.path[current_index + 1]
+
+                            x_end, y_end = self.positions[x_end][y_end]
+                            x_start, y_start = self.positions[x_start][y_start]
+
+                            t = [x_start - x_end, y_start - y_end]
+                            vector = np.array(t)
+                            angle_rad = np.arccos(
+                                np.dot(vector, [1, 0]) / (np.linalg.norm(vector) * np.linalg.norm([1, 0])))
+                            angle_rad = math.atan2(t[1], t[0])
+                            self.vector_dir = angle_rad
+                    else:
+                        show_arrows = False
+                        self.vector_dir = None
+                elif self.angle_field is not None:
                     t = self.angle_field[i][j]
                     if t[0] is None:
                         self.vector_dir = None
@@ -248,11 +345,20 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                             np.dot(vector, [1, 0]) / (np.linalg.norm(vector) * np.linalg.norm([1, 0])))
                         self.vector_dir = angle_rad
 
-                hexagon = Hexagon(center_x, center_y, vector_dir=self.vector_dir, show_arrows=self.show_arrows)
-                self._positions[i].append([center_x, center_y])
+                hexagon = Hexagon(center_x, center_y, vector_dir=self.vector_dir, show_arrows=show_arrows)
+                hexagon.obstacle = 0
                 self._hexs_[i].append(hexagon)
-                for c in hexagon.content:
-                    self.addToGroup(c)
+        self.add_items_to_group()
+
+    def add_items_to_group(self):
+        for line in range(len(self.hexs)):
+            for cell in range(len(self.hexs[line])):
+                for item in self.hexs[line][cell].content:
+                    self.addToGroup(item)
+
+    def draw_path_arrows(self, cell_list: list[list[int, int]]):
+        self.path = cell_list
+        self.create_table()
 
 
 class Table_preview(QWidget):
@@ -308,9 +414,8 @@ class Table_preview(QWidget):
         self.drawing = False
 
     def update_package_location(self):
-        # TODO: Use QTimer, maybe 200ms? More, focus on performance, sim is too slow.
-        # TODO: set the trigger for launch, as well as the end when the simulation is finished
-        # TODO: create supervisor to place objects as well as know when simulation is finished
+        # TODO: Use QTimer, maybe 200ms? More, focus on performance, sim is too slow anyways.
+        # TODO: create supervisor to place objects as well as know when simulation is finished, need info dict in shrm
         """Runs periodically using QTimer.
             Extracts sensor data from shared memory and updates hexagon highlight state.
             Will be first launched after self.launched_button is triggered.
@@ -320,7 +425,7 @@ class Table_preview(QWidget):
             self.background_item: BackgroundItem
             self.background_item.hexs = self._shared_data[SharedData.sensor_field]
         except:
-            print("can't update package progress")
+            print("Simulation is offline")
 
     def setup_buttons(self):
         layout = QVBoxLayout(self)
@@ -357,20 +462,24 @@ class Table_preview(QWidget):
         self.select_end: QPushButton = end
         self.select_obstacle: QPushButton = obstacle
 
-        self.select_start.clicked.connect(lambda: self.highlight_after_depress(self.select_start))
-        self.select_end.clicked.connect(lambda: self.highlight_after_depress(self.select_end))
-        self.select_obstacle.clicked.connect(lambda: self.highlight_after_depress(self.select_obstacle))
-        print(f'This is button setup, the button is: {self.select_start}')
+        '''self.select_start.clicked.connect(self.highlight_after_depress)
+        self.select_end.clicked.connect(self.highlight_after_depress)
+        self.select_obstacle.clicked.connect(self.highlight_after_depress)'''
 
-    def highlight_after_depress(self, button: QPushButton):
-        print(f"Initial info: {self.initial_info}")
-        print(self._initial_info)
-        if not button.isChecked():
-            name: str = button.objectName()
-            if name == 'obstacle':
-                self.background_item.highlight_point(self.initial_info[name], True, obstacle=True)
-            else:
-                self.background_item.highlight_point(self.initial_info[name], True)
+    def highlight_after_depress(self):
+        # TODO: must unhighlight right after, not before. Fix this. Example, if you highlight two cells then
+        #  unhighlight one, the unhighlighted one will be selected while appearing not to
+        if self.select_start.isChecked():
+            self.background_item.highlight_point(self.initial_info['start'], True, obstacle=False, s_e='start')
+        elif self.select_end.isChecked():
+            self.background_item.highlight_point(self.initial_info['end'], True, obstacle=False, s_e='end')
+        elif self.select_obstacle.isChecked():
+            p = self.initial_info['obstacle'][-1]
+            l = len(self.initial_info['obstacle'])
+            if p in self.initial_info['obstacle'][:l - 1]:
+                self._initial_info['obstacle'].remove(p)
+                self._initial_info['obstacle'].remove(p)
+            self.background_item.highlight_point(p, True, obstacle=True)
 
     def save_vec_field_data(self):
         # TODO: This only saves one list at a time, fix later
@@ -473,16 +582,19 @@ class Table_preview(QWidget):
     def setup_background_scene(self):  # TODO: implement to be called from MainUi using dimension_x inputs
         cell_width = 50
         cell_height = 50
-        print("*************************************")
-        print("Value of angle_field:", self.angle_field)
-        print("*************************************")
         self.background_item = BackgroundItem(self.scene, self.table_rows, self.table_cols, cell_width, cell_height,
                                               self.show_arrows, self.angle_field)
+        self.background_item.clear_all_highlight()
         self.scene.clear()
         self.scene.addItem(self.background_item)
         self.view.setScene(self.scene)
-        self._shared_data[SharedData.sensor_field] = [[False for j in range(self.table_cols)] for i in
-                                                      range(self.table_rows)]
+        self._initial_info = {}
+        try:
+            self._shared_data[SharedData.sensor_field] = [[0 for j in range(self.table_cols)] for i in
+                                                          range(self.table_rows)]
+        except TypeError:
+            self._shared_data = {SharedData.sensor_field: [[0 for j in range(self.table_cols)] for i in
+                                                           range(self.table_rows)]}
 
     def update_foreground_scene(self):
         self.scene.clear()
@@ -505,7 +617,6 @@ class Table_preview(QWidget):
             # start placing waypoints
             self.drawing = True
             self.coor_list.append([])
-            print("Starting to record a new list...")
 
             # square is stuck to mouse, placed when clicked, won't stop until clicking on waypoint button or ESC key
         else:
@@ -516,7 +627,6 @@ class Table_preview(QWidget):
             self.coor_index += 1
 
     def mousePressEvent(self, event):
-        print("Clicked inside table_preview")
         if event.type() == QEvent.MouseButtonPress:
             if event.button() == Qt.LeftButton and self.drawing:
                 # self.last_point = self.view.mapToScene(event.pos())
@@ -531,18 +641,21 @@ class Table_preview(QWidget):
                     line.setPen(QPen(Qt.red, 2, Qt.DotLine, Qt.RoundCap, Qt.RoundJoin))
                     self.scene.addItem(line)
                 self.last_point = current_point
-        if event.type() == QEvent.MouseButtonPress and self.select_start.isChecked():
-            self._initial_info['start'] = self.closest_grid_center(self.background_item.positions, self.get_cursor_position_in_view())[1]
+        if self.objectName() == 'show_table':
+            return None
+        elif event.type() == QEvent.MouseButtonPress and self.select_start.isChecked():
+            self._initial_info['start'] = \
+                self.closest_grid_center(self.background_item.positions, self.get_cursor_position_in_view())[1]
 
         elif event.type() == QEvent.MouseButtonPress and self.select_end.isChecked():
             self._initial_info['end'] = \
                 self.closest_grid_center(self.background_item.positions, self.get_cursor_position_in_view())[1]
         elif event.type() == QEvent.MouseButtonPress and self.select_obstacle.isChecked():
-            if self.initial_info['obstacle'] is None:
+            if 'obstacle' not in self._initial_info.keys():
                 self._initial_info['obstacle'] = []
-            self._initial_info['obstacle'].append(
-                self.closest_grid_center(self.background_item.positions, self.get_cursor_position_in_view())[1])
-        print(f"Info: {self._initial_info}")
+            p = self.closest_grid_center(self.background_item.positions, self.get_cursor_position_in_view())[1]
+            self._initial_info['obstacle'].append(p)
+        self.highlight_after_depress()
 
     def get_cursor_position_in_view(self):
         # cursor_pos = win32api.GetCursorPos()
@@ -574,7 +687,7 @@ class Table_preview(QWidget):
                     closest_center = center
                     closest_indices = (i, j)
 
-        return closest_center, closest_indices
+        return [closest_center, closest_indices]
 
     @property
     def initial_info(self):
@@ -779,6 +892,7 @@ class MainUi(QMainWindow):
 
     def __init__(self, robot: Robot):
         super(MainUi, self).__init__()
+        self.cell_grid = None
         ui_filename = r'C:\Users\toupa\Desktop\ESE - S1\PFE\Simulation_files\ui_files\window_0_1.ui'
         loadUi(ui_filename, self)
         self.resize(1366, 768)
@@ -798,7 +912,6 @@ class MainUi(QMainWindow):
         end = self.findChild(QPushButton, 'end')
         obstacle = self.findChild(QPushButton, 'obstacle')
         self.table_preview_2.setup_auto_button(start, end, obstacle)
-        self.table_preview.setup_auto_button(start, end, obstacle)
         self.setFocusPolicy(Qt.StrongFocus)
         self.installEventFilter(self)
         self.set_triggers()
@@ -886,7 +999,6 @@ class MainUi(QMainWindow):
     def create_webot_world_file(self):
         # TODO: connect clicking the button with extracting all the values from the UI
         self.create_progressBar.setValue(0)
-        print("Creating file ...")
         self.robot.translation.x = float(self.location_x.text())
         self.robot.translation.y = float(self.location_y.text())
         self.robot.translation.z = float(self.location_z.text())
@@ -908,7 +1020,6 @@ class MainUi(QMainWindow):
             t += 1
             self.create_progressBar.setValue(t)
         self.robot.create_file()
-        print("File created.")
 
     def set_default_values(self):
         self.filename_name.setText(self.robot.filename)
@@ -961,11 +1072,11 @@ class MainUi(QMainWindow):
             self.get_sensor_data_timer.start()
             self.calculate_automatic_pathing(True)
         elif not button.isChecked() and self.tab_area.currentIndex() == 1:
-            self.get_sensor_data_timer.stop(False)
+            self.get_sensor_data_timer.stop()
 
     def calculate_automatic_pathing(self, enabled):
         if enabled:
-            self.background_item: BackgroundItem
+            self.table_preview_2: Table_preview
             # Get the grid
             grid = self.table_preview_2.background_item.obstacle
             print(f"The grid is: {grid}")
@@ -974,17 +1085,18 @@ class MainUi(QMainWindow):
             d = self.table_preview_2.initial_info
             start = d['start']
             end = d['end']
-            obstacles = d['obstacles']
-            # put the manual obstacles
-            for obstacle in obstacles:
-                grid[obstacle[0]][obstacle[1]] = 1
 
             # do the calculation
             self.cell_grid = CelluvoyerGrid(grid)
             paths = CelluvoyerGrid.a_star_search(self.cell_grid, start, end, max_paths=2)
-
+            self.table_preview_2.background_item.highlight_list(paths[0])
+            t = self.table_preview_2.initial_info
             print(f"The final path is: {paths}")
+            # show arrows + highlight:
+            self.table_preview_2.background_item.draw_path_arrows(paths[0])
+            self.table_preview_2.background_item.highlight_point(t)
             # send the command
+
             # wait for feedback
 
     @property

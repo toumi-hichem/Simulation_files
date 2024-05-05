@@ -16,6 +16,10 @@ def ui_to_py():
 
 
 if __name__ == '__main__':
+    # TODO: create data permanence
+    # TODO: modify wbt file from cell editor
+
+    # TODO: regarding the feedback, if the package is moved out, automatically move the start cell to
     app = QApplication(sys.argv)
     r = Robot(translation=[0, 0, 0.1], dimensions=[5, 5], rotation=[0, 0, 1, 0], controller=r'<extern>')
     ui = MainUi(r)
