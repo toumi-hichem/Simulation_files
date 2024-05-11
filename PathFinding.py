@@ -186,7 +186,7 @@ grid = [
     [0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0],
 ]
-start = (0, 0)
+'''start = (0, 0)
 end = (4, 4)
 
 celluvoyer = CelluvoyerGrid(grid)
@@ -198,3 +198,4 @@ if paths:
         print(path)
 else:
     print("No path found")
+'''

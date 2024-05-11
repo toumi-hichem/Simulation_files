@@ -1,7 +1,8 @@
 import json
 import math
+import os
 import pickle
-from shared_data import SharedData
+from shared_data import SharedData, shared_mem
 
 # import statsmodels.api as sm
 import win32api
@@ -27,6 +28,8 @@ from PathFinding import CelluvoyerGrid
 # TODO: Write a setup.
 # TODO: maybe even exclude individual engines if not inside bounds to save energy, need hexagon class
 # TODO: Handle multiple packages
+
+# shared mem:
 
 
 class Hexagon(QGraphicsPolygonItem):
@@ -98,7 +101,7 @@ class Hexagon(QGraphicsPolygonItem):
     def create_arrow(self, vector_dir=None):
         if not vector_dir:
             vector_dir = self.vector_dir
-        if not self.show_arrows:
+        if not self.show_arrows or vector_dir is None:
             self._arrow = []
             self._content = [self, ] + self._arrow
             return None
@@ -126,7 +129,6 @@ class Hexagon(QGraphicsPolygonItem):
         self.vector_pen = QPen(QColor("yellow"))
 
     def specific_highlight(self, s_e):
-        print(f"Highlight: {s_e}")
         if self.highlight:
             self.setBrush(self.default_brush)
             self.setPen(self.default_pen)
@@ -183,13 +185,13 @@ class Hexagon(QGraphicsPolygonItem):
 
 
 class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
-    def __init__(self, scene, rows, cols, cell_width, cell_height, show_arrows, path=None, angle_field=None):
+
+    def __init__(self, scene, rows, cols, show_arrows, path=None, angle_field=None):
         super().__init__()
         # 0, 0, cols * cell_width, rows * cell_height
         self.scene = scene
         self.angle_field = angle_field
         self.path = path
-
 
         self.hex_size = 40  # Size of hexagons
         self.x_spacing = self.hex_size * 1.7
@@ -205,13 +207,14 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
         self._hexs_: list[list[Hexagon]] = []
         self._obstacle: list[list[int]] = []
         self._selected: list[list[int]] = []
+        self._vector_field: list[list[list[float]]] = []
 
         # create_stuff
         for i in range(self.rows):
             self._positions.append([])
             for j in range(self.cols):
                 center_x = self.initial_pos_x + self.x_spacing * i + (self.hex_size * 0.9 if j % 2 == 0 else 0)
-                center_y = self.initial_pos_y + self.y_spacing * j
+                center_y = self.initial_pos_y - self.y_spacing * j
                 self._positions[i].append([center_x, center_y])
 
         self.vector_pen = QPen(QColor("yellow"))
@@ -275,6 +278,14 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
         for line in range(len(self.hexs)):
             for cell in range(len(self.hexs[line])):
                 self._obstacle[line][cell] = value[line][cell]
+    
+    @property
+    def vector_field(self):
+        return self._vector_field
+    
+    @vector_field.setter
+    def vector_field(self, val):
+        self._vector_field = val
 
     def highlight_point(self, cor, flip=True, obstacle=False, s_e='start'):
         """Flips highlight"""
@@ -290,11 +301,8 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                         self.hexs[cell][line].specific_highlight('end')
                     elif 'obstacle' in cor.keys() and (cell, line) in cor['obstacle']:
                         t += 1
-                        print("obstacle")
                         self.hexs[cell][line].obstacle = 1
-                    print(f"Total highlight calls: {t}")
         if isinstance(cor, tuple|list):
-            print(f"manual highlight, {s_e}")
             if obstacle:
                 t = self.hexs[cor[0]][cor[1]].obstacle
                 self.hexs[cor[0]][cor[1]].obstacle = not t if flip else t
@@ -305,12 +313,16 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
         drawing_path, current_index, future_index = False, 0, 1
         if self.path:
             drawing_path = True
+            print("Drawing path")
         self._hexs_ = []
+        self._vector_field = []
+        print(f"creating table")
         for i in range(self.rows):
             self._hexs_.append([])
+            self._vector_field.append([])
             for j in range(self.cols):
                 center_x = self.initial_pos_x + self.x_spacing * i + (self.hex_size * 0.9 if j % 2 == 0 else 0)
-                center_y = self.initial_pos_y + self.y_spacing * j
+                center_y = self.initial_pos_y - self.y_spacing * j
                 show_arrows = self.show_arrows
                 # Displaying the vector
                 if drawing_path:
@@ -330,7 +342,7 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                             vector = np.array(t)
                             angle_rad = np.arccos(
                                 np.dot(vector, [1, 0]) / (np.linalg.norm(vector) * np.linalg.norm([1, 0])))
-                            angle_rad = math.atan2(t[1], t[0])
+                            #angle_rad = math.atan2(t[1], t[0])
                             self.vector_dir = angle_rad
                     else:
                         show_arrows = False
@@ -340,14 +352,22 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                     if t[0] is None:
                         self.vector_dir = None
                     else:
-                        vector = np.array(t)
+                        vector = np.array(t)[0:2]
+                        #angle_rad = math.atan2(t[1], t[0])
                         angle_rad = np.arccos(
-                            np.dot(vector, [1, 0]) / (np.linalg.norm(vector) * np.linalg.norm([1, 0])))
+                                np.dot(vector, [1, 0]) / (np.linalg.norm(vector) * np.linalg.norm([1, 0])))
+                        
                         self.vector_dir = angle_rad
 
-                hexagon = Hexagon(center_x, center_y, vector_dir=self.vector_dir, show_arrows=show_arrows)
+                hexagon = Hexagon(self.positions[i][j][0], self.positions[i][j][1], vector_dir=self.vector_dir, show_arrows=show_arrows)
                 hexagon.obstacle = 0
                 self._hexs_[i].append(hexagon)
+                if self.vector_dir:
+                    self._vector_field[i].append([cos(self.vector_dir), sin(self.vector_dir), 0])
+                else:
+                    self._vector_field[i].append([0, 0, 0])
+
+        self.path = []
         self.add_items_to_group()
 
     def add_items_to_group(self):
@@ -363,17 +383,12 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
 
 class Table_preview(QWidget):
     json_vec_field_filename = r'C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\dataexchange.pkl'
-
     def __init__(self, *args):
         super().__init__(*args)
         self.select_start = None
         self.select_end = None
         self.select_obstacle = None
-        print(F"Accessing shared data named: {SharedData.shrm_name}")
-        try:
-            self.shared_mem = SharedData(name=SharedData.shrm_name, create=True)
-        except FileExistsError:
-            self.shared_mem = SharedData(name=SharedData.shrm_name, create=False)
+        self.foldable_toolbad: FoldableToolBar | None = None
         self._shared_data = {}
         self._initial_info = {}
 
@@ -416,16 +431,18 @@ class Table_preview(QWidget):
     def update_package_location(self):
         # TODO: Use QTimer, maybe 200ms? More, focus on performance, sim is too slow anyways.
         # TODO: create supervisor to place objects as well as know when simulation is finished, need info dict in shrm
+
         """Runs periodically using QTimer.
             Extracts sensor data from shared memory and updates hexagon highlight state.
             Will be first launched after self.launched_button is triggered.
             """
         try:
-            self._shared_data = self.shared_mem.retrieve_data()
+            self._shared_data = shared_mem.retrieve_data()
             self.background_item: BackgroundItem
             self.background_item.hexs = self._shared_data[SharedData.sensor_field]
-        except:
-            print("Simulation is offline")
+        except Exception as e:
+            print(f"Simulation is offline because: {e}. We're inside: {self.objectName()}, instance:{self}")
+            
 
     def setup_buttons(self):
         layout = QVBoxLayout(self)
@@ -481,11 +498,6 @@ class Table_preview(QWidget):
                 self._initial_info['obstacle'].remove(p)
             self.background_item.highlight_point(p, True, obstacle=True)
 
-    def save_vec_field_data(self):
-        # TODO: This only saves one list at a time, fix later
-        t = self.numpy_array_to_list(self.angle_field)
-        with open(self.json_vec_field_filename, 'wb') as f:
-            pickle.dump(t, f)
 
     def numpy_array_to_list(self, arr):
         if isinstance(arr, np.ndarray):
@@ -506,18 +518,17 @@ class Table_preview(QWidget):
         # TODO: Add threshold to gui
         self.angle_field = self.create_vector_field(points, vec_fiel, self.table_rows, self.table_cols)
         self._shared_data[SharedData.vector_field] = self.angle_field
-        self.shared_mem.store_data(self._shared_data)
+        shared_mem.store_data(self._shared_data)
         self.update_background_scene()  # TODO: Create option not to delete rects + lines
-        self.save_vec_field_data()
-
-        self.scene.addItem(self.background_item)
-        self.view.setScene(self.scene)
+        self.foldable_toolbar
+        #self.scene.addItem(self.background_item)
+        #self.view.setScene(self.scene)
 
     def create_vector_field(self, path_points, vec_fiel, x, y):
         vector_field = [[0 for j in range(y)] for i in range(x)]
         for i in range(len(vec_fiel)):
-            for j in range(len(vec_fiel[0])):
-                cell = vec_fiel[i][j]
+            for j in range(len(vec_fiel[i])):
+                cell = vec_fiel[i][j] #TODO: If grids topped working, here
                 vector_field[i][j] = self.get_distance_and_tangent(cell, path_points, self._package_size)
 
         return vector_field
@@ -555,9 +566,9 @@ class Table_preview(QWidget):
         if min_distance <= threshold:
             # normalize
             magnitude = np.linalg.norm(closest_tangent)  # Calculate the magnitude of the vector
-            return closest_tangent / magnitude
+            return list(closest_tangent / magnitude) + [0, ]
         else:
-            return None, None
+            return [None, None, None]
 
     @staticmethod
     def get_distance_to_line_segment(cell_center, start_point, end_point):
@@ -575,17 +586,11 @@ class Table_preview(QWidget):
         distance = np.linalg.norm(cell_center - projection)
         return distance, projection
 
-    def launch_controller(self):
-        self.main_window.robot.launch_controller_string(1, 1, 0)
-        pass
-
     def setup_background_scene(self):  # TODO: implement to be called from MainUi using dimension_x inputs
-        cell_width = 50
-        cell_height = 50
-        self.background_item = BackgroundItem(self.scene, self.table_rows, self.table_cols, cell_width, cell_height,
-                                              self.show_arrows, self.angle_field)
-        self.background_item.clear_all_highlight()
+        # self.background_item.clear_all_highlight()
         self.scene.clear()
+        self.background_item = BackgroundItem(scene=self.scene, cols=self.table_rows, rows=self.table_cols,
+                                              show_arrows=self.show_arrows, angle_field=self.angle_field)
         self.scene.addItem(self.background_item)
         self.view.setScene(self.scene)
         self._initial_info = {}
@@ -595,6 +600,7 @@ class Table_preview(QWidget):
         except TypeError:
             self._shared_data = {SharedData.sensor_field: [[0 for j in range(self.table_cols)] for i in
                                                            range(self.table_rows)]}
+        
 
     def update_foreground_scene(self):
         self.scene.clear()
@@ -693,7 +699,7 @@ class Table_preview(QWidget):
     def initial_info(self):
         return self._initial_info
 
-    def update_and_draw_rectangle(self):
+    def update_and_draw_rectangle(self): # obsolete 
         # TODO: solve rect offset issues
         return None  # TODO: Fix the offset and delete this later
         cursor_pos = self.get_cursor_position_in_view()
@@ -734,6 +740,9 @@ class Table_preview(QWidget):
     def pen_size(self):
         return self._package_size
 
+    def set_foldable_bar(self, val):
+        print(F"Foldable toolbar")
+        self.foldable_toolbar: FoldableToolBar = val
 
 class FoldableToolBar(QWidget):
     def __init__(self, parent=None):
@@ -893,11 +902,22 @@ class MainUi(QMainWindow):
     def __init__(self, robot: Robot):
         super(MainUi, self).__init__()
         self.cell_grid = None
-        ui_filename = r'C:\Users\toupa\Desktop\ESE - S1\PFE\Simulation_files\ui_files\window_0_1.ui'
+        ui_filename = rf'{os.path.realpath(os.path.dirname(__file__))}\ui_files\window_0_1.ui'
         loadUi(ui_filename, self)
+        try:
+            self._default_values = self.robot.default_values
+        except:
+            self._default_values = None
+        standard_sheet = "standard_style_sheet.qss"
+        dark_sheet = "QTDark.stylesheet"
+        # Load the stylesheet
+        with open(rf"{os.path.realpath(os.path.dirname(__file__))}\ui_files\{standard_sheet}", 'r') as f:  
+            stylesheet = f.read()
+
+        # Apply the stylesheet to the main window
+        self.setStyleSheet(stylesheet)
         self.resize(1366, 768)
         self.robot = robot
-        self._default_values = self.robot.default_values
         self.show_arrows = False
         self.stackedWidget_3000: QStackedWidget = self.findChild(QStackedWidget, "stackedWidget_3000")
         self.stackedWidget_3000.setCurrentIndex(1)
@@ -976,6 +996,14 @@ class MainUi(QMainWindow):
         else:
             super().keyPressEvent(event)
 
+    def reload_dicts(self):
+        x = self.dimension_x.value()
+        y = self.dimension_y.value()
+        data = {}
+        data[SharedData.sensor_field] = [[0 for i in range(x)] for j in range(y)]
+        data[SharedData.vector_field] = [[[0, 0, 0] for i in range(x)] for j in range(y)]
+        shared_mem.store_data(data=data)
+
     def set_triggers(self):
         self.create_progressBar: QProgressBar = self.findChild(QProgressBar, "create_progressBar")
         self.create_progressBar.setValue(0)
@@ -984,6 +1012,12 @@ class MainUi(QMainWindow):
         self.dimension_y.valueChanged.connect(self.update_table_preview)
         self.foldable_toolbar.package_size_spin_box.valueChanged.connect(
             lambda: self.table_preview_2.change_pen_size(self.foldable_toolbar.package_size_spin_box.value()))
+        self.foldable_toolbar: FoldableToolBar
+        t = self.foldable_toolbar.waypoint_pins
+        t.clicked.connect(lambda: self.table_preview_2.mouse_hover(t))
+        self.table_preview_2.set_foldable_bar(self.foldable_toolbar)
+        
+        self.reload_dicts()
 
     def update_table_preview(self):  # TODO: deprecated, remove later
         raduis = 20
@@ -995,6 +1029,7 @@ class MainUi(QMainWindow):
         self.table_preview_2.set_background_parameters(self.dimension_x.value(), self.dimension_y.value(),
                                                        self.show_arrows)
         # self.Table_preview.setScene(self.scene)
+        self.reload_dicts()
 
     def create_webot_world_file(self):
         # TODO: connect clicking the button with extracting all the values from the UI
@@ -1076,13 +1111,18 @@ class MainUi(QMainWindow):
 
     def calculate_automatic_pathing(self, enabled):
         if enabled:
+            global shared_mem
             self.table_preview_2: Table_preview
             # Get the grid
             grid = self.table_preview_2.background_item.obstacle
             print(f"The grid is: {grid}")
             # Get start and end positions
-            self.table_preview_2: FoldableToolBar
+            self.table_preview_2: Table_preview
             d = self.table_preview_2.initial_info
+            print(f"dict after launch: {d}")
+            if 'end' not in d.keys() and 'start' not in d.keys():
+                print(F"select start & end") 
+                return None
             start = d['start']
             end = d['end']
 
@@ -1093,10 +1133,15 @@ class MainUi(QMainWindow):
             t = self.table_preview_2.initial_info
             print(f"The final path is: {paths}")
             # show arrows + highlight:
+            # TODO: Inside this, create vector field and return it then save it to shared mem
             self.table_preview_2.background_item.draw_path_arrows(paths[0])
             self.table_preview_2.background_item.highlight_point(t)
             # send the command
-
+            print("Sent command to simulation")
+            d = shared_mem.retrieve_data()
+            d[SharedData.vector_field] = self.table_preview_2.background_item.vector_field
+            shared_mem.store_data(d)
+            print(f"After creating the commands, this is the data: {d}")
             # wait for feedback
 
     @property

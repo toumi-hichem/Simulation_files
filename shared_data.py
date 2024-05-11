@@ -18,6 +18,7 @@ def SemaphoreWrapper(func):
         sem.acquire()
         res = func(*args, **kwargs)
         sem.release()
+        print("shrm accessed")
         return res
 
     return wrapper
@@ -36,31 +37,16 @@ class SharedData:
 
     def __init__(self, name, val=None, create=False, mem_offset=0):
         if create:
-            self.mem = shared_memory.SharedMemory(name, create=True, size=self.mem_size)
+            try:
+                self.mem = shared_memory.SharedMemory(name, create=True, size=self.mem_size)
+                print("This class has been created")
+            except:
+                self.mem = shared_memory.SharedMemory(name, create=False, size=self.mem_size)
+                print("This class accessed something else")
         else:
             self.mem = shared_memory.SharedMemory(name, create=False, size=self.mem_size)
+            print("This class accessed something else")
         self.mem_offset = mem_offset
-
-    def getIndex(self, x, y, row=None, col=None):
-        if row is None:
-            row = self.row
-            col = self.col
-        if 0 <= x < col and 0 <= y < row:
-            i = y * col + x
-            return i
-        else:
-            return None
-
-    def getRowCol(self, i, row=None, col=None):
-        if row is None:
-            row = self.row
-            col = self.col
-        if 0 <= i < row * col:
-            y = i // col
-            x = i % col
-            return x, y
-        else:
-            return None, None
 
     @SemaphoreWrapper
     def store_data(self, data):
@@ -88,9 +74,14 @@ class SharedData:
 
     def unlink(self):
         self.mem.unlink()
+    
+    def __del__(self):
+        print("this class has been deleted")
 
 
 def create_shared_data():
     print(f"Creating shared data named: {SharedData.shrm_name}")
     # t = SharedData(SharedData.shrm_name, None, create=True)
     # t.unlink()
+
+shared_mem = SharedData(name=SharedData.shrm_name, create=True)
