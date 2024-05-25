@@ -36,10 +36,10 @@ class CelluvoyerGrid:
         return neighbors'''
         neighbors = []
         # Define movement based on even or odd rows (honeycomb grid)
-        if col % 2 == 0:  # Even row
-            corners_permutation = [[0, -1], [-1, 0], [0, 1], [1, 1], [1, 0], [1, -1]]
+        if row % 2 == 0:  # Even row
+            corners_permutation = [[0, -1], [-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0]]
         else:  # Odd row
-            corners_permutation = [[-1, -1], [-1, 0], [-1, 1], [0, 1], [1, 0], [0, -1]]
+            corners_permutation = [[-1, -1], [0, -1], [1, -1], [1, 0], [0, 1], [-1, 0]]
         for drow, dcol in corners_permutation:
             new_row = row + drow
             new_col = col + dcol
@@ -179,14 +179,9 @@ class CelluvoyerGrid:
     [0, 0, 0, 1, 0, 0],
     [0, 0, 0, 0, 0, 0],
 ]'''
-grid = [
-    [0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0],
-]
-'''start = (0, 0)
+grid = [[0, 1, 0, 0, 1, 0],
+        [0, 0, 0, 1, 0, 0]]
+start = (0, 0)
 end = (4, 4)
 
 celluvoyer = CelluvoyerGrid(grid)
@@ -198,4 +193,3 @@ if paths:
         print(path)
 else:
     print("No path found")
-'''

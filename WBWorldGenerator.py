@@ -1,4 +1,3 @@
-
 # TODO: change floor size with table size
 # TODO: dynamically add input and output conveyors
 
@@ -126,11 +125,12 @@ class Cell:
         self.joint1 = self.name + "_wheel_1"
         self.joint2 = self.name + "_wheel_2"
         self.joint3 = self.name + "_wheel_3"
+        self._wheel_height = 0.085
 
         self.name_body = self.name + "_body"
 
         self._dist_sensor = DistSensor([0, 0, 0.1], [0, 1, 0, -1.5708003061004252], x, y)
-
+        self._info = {'x': x, 'y': y, 'translation': translation}
         self._core_string = \
             f'''DEF {self.name.no_quotes()} Pose {{
     translation {self.translation}
@@ -148,7 +148,7 @@ class Cell:
               ]
             }}
             DEF V1 Pose {{
-              translation 0.04 0 0.1
+              translation 0.04 0 {self._wheel_height}
               rotation 0 0 1 1.5707996938995747
               children [
                 HingeJoint {{
@@ -191,7 +191,7 @@ class Cell:
               ]
             }}
             DEF V2 Pose {{
-              translation -0.02 0.034 0.1
+              translation -0.02 0.034 {self._wheel_height}
               rotation 0 0 1 -2.6179953071795863
               children [
                 HingeJoint {{
@@ -234,7 +234,7 @@ class Cell:
               ]
             }}
             DEF V3 Pose {{
-              translation -0.02 -0.034 0.1
+              translation -0.02 -0.034 {self._wheel_height}
               rotation 0 0 1 -0.523595307179586
               children [
                 HingeJoint {{
@@ -301,19 +301,49 @@ class Cell:
     def __str__(self):
         return self._core_string
 
+    @property
+    def info(self):
+        return self._info
+
+
+class Conveyor:
+    _max_speed = 0.5
+
+    def __init__(self, translation: SFVec | list, rotation: SFVec | list, input_dir: str, size: list, name: str|SFString):
+        self._translation = translation if isinstance(translation, SFVec) else SFVec(translation)
+        self._rotation = rotation if isinstance(rotation, SFVec) else SFVec(rotation)
+        self._size = size if isinstance(size, SFVec) else SFVec(size)
+        self._name = name if isinstance(name, SFString) else SFString(name)
+        if input_dir.lower() == 'input':
+            self._speed = Conveyor._max_speed
+        elif input_dir.lower() == 'output':
+            self._speed = -Conveyor._max_speed
+
+        self._core_string = f'''ConveyorBelt {{
+  translation {self._translation}
+  rotation {self._rotation}
+  name {self._name.yes_quotes()}
+  size {self._size}
+  speed {self._speed}
+}}'''
+
+    def __str__(self):
+        return self._core_string
+
 
 class CelluvoyeRobot:
-    x_cell_dist = 0.174  # TODO: turn into dynamically modified straight from the gui.
-    y_cell_dist = 0.152
-    height = 0.101
-    wheel_shape = SFString('Celluvoyer_wheel_0_1.dae')
-    cylinder_shape = SFString('Celluvoyer_0_1.dae')
+    x_cell_dist = None  # TODO: turn into dynamically modified straight from the gui.
+    y_cell_dist = None
+    height = None
+    wheel_shape = None
+    cylinder_shape = None
 
     def __init__(self, dimension_x, dimension_y, controller):
         self.translation_list = []
         self.cell_list = []
-        self.dimension_x = dimension_x
-        self.dimension_y = dimension_y
+        self._positions = []
+        self.row_count = dimension_x
+        self.col_count = dimension_y
         self.controller = controller if isinstance(controller, SFString) else SFString(controller)
         # TODO: add other parameters like sync and stuff
         cells_str = self.create_cells()
@@ -332,16 +362,14 @@ class CelluvoyeRobot:
 '''
 
     def create_cells(self):
-        t = -1
-        for j in range(self.dimension_y):
-            y = self.y_cell_dist * j
-            t *= -1
-            for i in range(self.dimension_x):
-                if j % 2 == 0:
-                    x = self.x_cell_dist * i
-                else:
-                    x = self.x_cell_dist * i + (t * self.x_cell_dist / 2)
-                self.cell_list.append(Cell(i, j, SFVec([x, y, self.height]), self.wheel_shape, self.cylinder_shape))
+        for i in range(self.row_count):
+            self._positions.append([])
+            for j in range(self.col_count):
+                center_y = self.y_cell_dist * i * -1  # + (self.hex_size * 0.9 if j % 2 == 0 else 0)
+                center_x = self.x_cell_dist * j + (self.x_cell_dist * 0.5 if i % 2 == 0 else 0)
+                self.cell_list.append(
+                    Cell(i, j, SFVec([center_x, center_y, self.height]), self.wheel_shape, self.cylinder_shape))
+                self._positions[i].append(self.cell_list[-1])
         t = ''
         for c in self.cell_list:
             t += str(c)
@@ -350,12 +378,31 @@ class CelluvoyeRobot:
     def __str__(self):
         return self._core_string
 
+    @property
+    def cell_positions(self):
+        return self._positions
+
 
 class Header:
-    def __init__(self, filename, x, y, controller):
+    x_cell_dist = 0.174  # TODO: turn into dynamically modified straight from the gui.
+    y_cell_dist = 0.152
+    height = 0.101
+    wheel_shape = SFString('Celluvoyer_wheel_0_1.dae')
+    cylinder_shape = SFString('Celluvoyer_0_1.dae')
+    lane_size = [0.6, 0.2, 0.22]
+    half_lane = lane_size[0] / 2
+
+    def __init__(self, filename, x, y, controller, lane_data):
         self.filename = filename
+        self._lane_data = lane_data
+        CelluvoyeRobot.x_cell_dist = self.x_cell_dist
+        CelluvoyeRobot.y_cell_dist = self.y_cell_dist
+        CelluvoyeRobot.height = self.height
+        CelluvoyeRobot.wheel_shape = self.wheel_shape
+        CelluvoyeRobot.cylinder_shape = self.cylinder_shape
         self.robot_object = CelluvoyeRobot(x, y, controller)
         body_str = str(self.robot_object)
+        conveyor_str = self.create_conveyor()
 
         self.orientation = r"orientation 0.1446426463512726 -0.9891624130165184 0.025223511489070028 4.6692983323171"
         self.position = r"position 0.007286806676128004 0.20276337840156394 1.629154495736184"
@@ -379,17 +426,51 @@ TexturedBackgroundLight {{
 RectangleArena {{
   floorSize 3 3
 }}
+{conveyor_str}
+
 {body_str} 
 """
 
     def __str__(self):
         return self.header
 
+    def create_conveyor(self):
+        ans = ''
+        conv_list = []
+        for one_lane in self._lane_data:
+            x, y = one_lane[0:2]
+            orientation = one_lane[5]
+            input_sir = one_lane[7]
+            translation = []
+            rotation = []
+            webot_cell_translation = self.robot_object.cell_positions[one_lane[8]][one_lane[9]].info['translation']
+
+            if orientation[0] == 0:
+                if orientation[1] == 1:  # left
+                    translation = [0 - (Header.x_cell_dist * 0.6) - Header.half_lane, webot_cell_translation[1], 0]
+                    rotation = [0, 0, 1, 0]
+                else:
+                    translation = [Header.x_cell_dist * (one_lane[9] + 1.2) + Header.half_lane, webot_cell_translation[1], 0]
+                    rotation = [0, 0, 1, 3.14]
+            else:
+                if orientation[0] == -1:  # top
+                    translation = [webot_cell_translation[0], 0 + (Header.y_cell_dist * 0.8) + Header.half_lane, 0]
+                    rotation = [0, 0, -1, 1.56425]
+                else:
+                    translation = [webot_cell_translation[0],
+                                   webot_cell_translation[1] - Header.half_lane - Header.y_cell_dist * 0.8, 0]
+                    rotation = [0, 0, 1, 1.57734]
+            t = Conveyor(translation=translation, rotation=rotation, input_dir=input_sir, size=Header.lane_size, name=f"Conveyor_{one_lane[8]}_{one_lane[9]}")
+            conv_list.append(t)
+            ans += str(t) + '\n'
+        return ans
+
 
 class Robot:
     def __init__(self, translation=None, rotation=None, description=None, supervisor=None, controller=None,
                  header=None, dimensions=None):
 
+        self._lane_data = None
         if dimensions is None:
             dimensions = [1, 1]
         else:
@@ -418,7 +499,7 @@ class Robot:
         return str(self.header)
 
     def update_data(self):
-        self.header = Header(self.filename, *self.dimensions, self.controller)
+        self.header = Header(self.filename, *self.dimensions, self.controller, self._lane_data)
 
     def create_file(self):
         self.update_data()
@@ -426,7 +507,6 @@ class Robot:
         print(f"file at: {self.write_filename}")
         with open(self.write_filename, 'w') as f:
             f.write(str(self))
-
 
     def set_default_value(self):
         self._default_values['filename'] = self.filename
@@ -493,6 +573,14 @@ class Robot:
             self._dimensions = val
         else:
             self._dimensions = SFVec(val)
+
+    @property
+    def lane_data(self):
+        return self._lane_data
+
+    @lane_data.setter
+    def lane_data(self, val):
+        self._lane_data = val
 
 
 if __name__ == '__main__':

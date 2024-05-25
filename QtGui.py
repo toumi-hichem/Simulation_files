@@ -2,6 +2,8 @@ import json
 import math
 import os
 import pickle
+import uuid
+
 from shared_data import SharedData, shared_mem
 
 # import statsmodels.api as sm
@@ -11,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PyQt5.uic import loadUi
 from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow, QSizePolicy, QListView, QGraphicsPixmapItem, QComboBox, \
-    QProgressBar, QTabWidget
+    QProgressBar, QTabWidget, QLineEdit
 import sys
 from WBWorldGenerator import Robot
 from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsView, QVBoxLayout, QPushButton, QSpinBox, \
@@ -22,6 +24,7 @@ from PyQt5.QtGui import QBrush, QPen, QPolygonF, QPainter, QImage, QPixmap, QPai
 from PyQt5.QtCore import Qt, QPointF, QLineF, QEvent, QRectF, pyqtSlot, QPropertyAnimation, QAbstractAnimation, \
     QEasingCurve, QTimer, QPoint
 from PathFinding import CelluvoyerGrid
+from QtUtilities import FoldableToolBar, Package, LaneGraphicRepresentation
 
 
 # TODO: Create a cell editor table for color, dimensions ....
@@ -184,7 +187,172 @@ class Hexagon(QGraphicsPolygonItem):
             self.setPen(self.default_pen)
 
 
+class Lane(QGraphicsRectItem):
+    def __init__(self, x, y, width, height, show_arrow, orientation, parent, input_dir, i, j, *args):
+        super().__init__(x, y, width, height, *args)
+        self._arrow = None
+        self.i = i
+        self.j = j
+        self.input_dir = input_dir
+        self.parent = parent
+        self._content = []
+        self.show_arrows = show_arrow
+        self.vector_length = max(height, width) * 0.8
+        self.x = x
+        self.y = y
+        self.center_x = 0
+        self.center_y = 0
+        self.orientation = orientation
+
+        self._start_highlight = 0
+        self._end_highlight = 0
+        self._obstacle_highlight = 0
+
+        self.default_brush = QBrush(QColor("Blue"))
+        self.default_pen = QPen(QColor("White"))
+
+        self.obstacle_brush = QBrush(QColor("grey"))
+        self.obstacle_pen = QPen(QColor("white"))
+
+        self.start_brush = QBrush(QColor("light green"))
+        self.start_pen = QPen(QColor("while"))
+
+        self.end_brush = QBrush(QColor("red"))
+        self.end_pen = QPen(QColor("orange"))
+
+        self.setBrush(self.default_brush)
+        self.setPen(self.default_pen)
+
+        self.vector_pen = QPen(QColor("red"))
+        # create arrow
+        vector_dir = 0
+        arrow_back = max(height, width)
+        arrow_offset = min(height, width)
+
+        if orientation[0] == 0:
+            if orientation[1] == 1:  # left
+                if self.input_dir == 'Input':
+                    vector_dir = 0
+                    self.center_x = self.x + arrow_back * 0.1
+                    self.center_y = self.y + arrow_offset / 2
+                else:
+                    vector_dir = math.pi
+                    self.center_x = self.x + arrow_back * 0.9
+                    self.center_y = self.y + arrow_offset / 2
+            else:  # right
+                if self.input_dir == 'Input':
+                    vector_dir = math.pi if self.input_dir == 'Input' else 0
+                    self.center_x = self.x + arrow_back * 0.9
+                    self.center_y = self.y + arrow_offset / 2
+                else:
+                    vector_dir = 0
+                    self.center_x = self.x + arrow_back * 0.1
+                    self.center_y = self.y + arrow_offset / 2
+        elif orientation[1] == 0:
+            if orientation[0] == 1:  # bottom
+                if self.input_dir == 'Input':
+                    vector_dir = 4.71239
+                    self.center_x = self.x + arrow_offset / 2
+                    self.center_y = self.y + arrow_back * 0.9
+                else:
+                    vector_dir = math.pi / 2
+                    self.center_x = self.x + arrow_offset / 2
+                    self.center_y = self.y + arrow_back * 0.1
+            else:  # top
+                if self.input_dir == 'Input':
+                    vector_dir = math.pi / 2
+                    self.center_x = self.x + arrow_offset / 2
+                    self.center_y = self.y + arrow_back * 0.1
+                else:
+                    vector_dir = 4.71239
+                    self.center_x = self.x + arrow_offset / 2
+                    self.center_y = self.y + arrow_back * 0.9
+        self.create_arrow(vector_dir=vector_dir)
+
+    def create_arrow(self, vector_dir=None):
+
+        if not self.show_arrows or vector_dir is None:
+            self._arrow = []
+            self._content = [self, ] + self._arrow
+            return None
+        vec_x_end = self.center_x + self.vector_length * cos(vector_dir)
+        vec_y_end = self.center_y + self.vector_length * sin(vector_dir)
+        line = QGraphicsLineItem(self.center_x, self.center_y, vec_x_end, vec_y_end)
+
+        arrow_angle = vector_dir + math.pi * (3 / 4)
+        arrow_right = QGraphicsLineItem(vec_x_end, vec_y_end,
+                                        vec_x_end + ((self.vector_length / 2) * cos(arrow_angle)),
+                                        vec_y_end + ((self.vector_length / 2) * sin(arrow_angle)))
+        arrow_angle -= math.pi * (3 / 4) * 2
+        arrow_left = QGraphicsLineItem(vec_x_end, vec_y_end,
+                                       vec_x_end + ((self.vector_length / 2) * cos(arrow_angle)),
+                                       vec_y_end + ((self.vector_length / 2) * sin(arrow_angle)))
+
+        line.setPen(self.vector_pen)
+        arrow_left.setPen(self.vector_pen)
+        arrow_right.setPen(self.vector_pen)
+        self._arrow = [line, arrow_left, arrow_right]
+        self._content = [self, ] + self._arrow
+
+    def get_lane_data(self):
+        return {'cell_index': [self.x, self.y], 'orientation': self.orientation, 'input_dir': self.input_dir}
+
+    @property
+    def content(self):
+        return self._content
+
+    @content.setter
+    def content(self, value):
+        if value in self._content:
+            self._content.remove(value)
+        else:
+            self._content.append(value)
+
+    def highlight(self, highlight_type: str):
+        if highlight_type == 'start':
+            if self._start_highlight == 1:
+                self._start_highlight = 0
+                self.setBrush(self.default_brush)
+                self.setPen(self.default_pen)
+            else:
+                self._start_highlight = 1
+                self.setBrush(self.start_brush)
+                self.setPen(self.start_pen)
+        elif highlight_type == 'end':
+            if self._end_highlight == 1:
+                self._end_highlight = 0
+                self.setBrush(self.default_brush)
+                self.setPen(self.default_pen)
+            else:
+                self._end_highlight = 1
+                self.setBrush(self.end_brush)
+                self.setPen(self.end_pen)
+        elif highlight_type == 'obstacle':
+            if self._obstacle_highlight == 1:
+                self._obstacle_highlight = 0
+                self.setBrush(self.default_brush)
+                self.setPen(self.obstacle_pen)
+            else:
+                self._obstacle_highlight = 1
+                self.setBrush(self.obstacle_brush)
+                self.setPen(self.obstacle_pen)
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.i == other.i and self.j == other.j
+        elif isinstance(other, list | tuple):
+            return self.i == other[0] and self.j == other[1]
+        else:
+            return False
+
+
 class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
+    hex_size = 40
+    lane_width = hex_size * 1.3
+    lane_height = hex_size * 2.5
+    y_spacing = hex_size * 1.5
+    x_spacing = hex_size * 1.73
+    vector_length = hex_size / 2
 
     def __init__(self, scene, rows, cols, show_arrows, path=None, angle_field=None):
         super().__init__()
@@ -193,10 +361,7 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
         self.angle_field = angle_field
         self.path = path
 
-        self.hex_size = 40  # Size of hexagons
-        self.x_spacing = self.hex_size * 1.7
-        self.y_spacing = self.hex_size * 1.5
-        self.vector_length = self.hex_size / 2
+        # Size of hexagons
 
         self.rows = rows
         self.cols = cols
@@ -208,13 +373,15 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
         self._obstacle: list[list[int]] = []
         self._selected: list[list[int]] = []
         self._vector_field: list[list[list[float]]] = []
+        self._lane_list = []
+        self._content = []
 
         # create_stuff
         for i in range(self.rows):
             self._positions.append([])
             for j in range(self.cols):
-                center_x = self.initial_pos_x + self.x_spacing * i + (self.hex_size * 0.9 if j % 2 == 0 else 0)
-                center_y = self.initial_pos_y - self.y_spacing * j
+                center_y = self.initial_pos_x + self.y_spacing * i  # + (self.hex_size * 0.9 if j % 2 == 0 else 0)
+                center_x = self.initial_pos_y + self.x_spacing * j + (self.hex_size * 0.9 if i % 2 == 0 else 0)
                 self._positions[i].append([center_x, center_y])
 
         self.vector_pen = QPen(QColor("yellow"))
@@ -254,9 +421,9 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
     @property
     def obstacle(self):
         self._obstacle = []
-        for line in range(len(self.hexs)):
+        for line in range(self.rows):  # range(len(self.hexs)):
             self._obstacle.append([])
-            for cell in range(len(self.hexs[line])):
+            for cell in range(self.cols):  # range(len(self.hexs[line])):
                 if self.hexs[line][cell].obstacle:
                     self._obstacle[line].append(1)
                 else:
@@ -278,14 +445,22 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
         for line in range(len(self.hexs)):
             for cell in range(len(self.hexs[line])):
                 self._obstacle[line][cell] = value[line][cell]
-    
+
     @property
     def vector_field(self):
         return self._vector_field
-    
+
     @vector_field.setter
     def vector_field(self, val):
         self._vector_field = val
+
+    @property
+    def content(self):
+        return self._content
+
+    @content.setter
+    def content(self, value):
+        self._content = value
 
     def highlight_point(self, cor, flip=True, obstacle=False, s_e='start'):
         """Flips highlight"""
@@ -302,7 +477,7 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                     elif 'obstacle' in cor.keys() and (cell, line) in cor['obstacle']:
                         t += 1
                         self.hexs[cell][line].obstacle = 1
-        if isinstance(cor, tuple|list):
+        if isinstance(cor, tuple | list):
             if obstacle:
                 t = self.hexs[cor[0]][cor[1]].obstacle
                 self.hexs[cor[0]][cor[1]].obstacle = not t if flip else t
@@ -321,8 +496,6 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
             self._hexs_.append([])
             self._vector_field.append([])
             for j in range(self.cols):
-                center_x = self.initial_pos_x + self.x_spacing * i + (self.hex_size * 0.9 if j % 2 == 0 else 0)
-                center_y = self.initial_pos_y - self.y_spacing * j
                 show_arrows = self.show_arrows
                 # Displaying the vector
                 if drawing_path:
@@ -342,7 +515,7 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                             vector = np.array(t)
                             angle_rad = np.arccos(
                                 np.dot(vector, [1, 0]) / (np.linalg.norm(vector) * np.linalg.norm([1, 0])))
-                            #angle_rad = math.atan2(t[1], t[0])
+                            # angle_rad = math.atan2(t[1], t[0])
                             self.vector_dir = angle_rad
                     else:
                         show_arrows = False
@@ -353,13 +526,14 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                         self.vector_dir = None
                     else:
                         vector = np.array(t)[0:2]
-                        #angle_rad = math.atan2(t[1], t[0])
+                        # angle_rad = math.atan2(t[1], t[0])
                         angle_rad = np.arccos(
-                                np.dot(vector, [1, 0]) / (np.linalg.norm(vector) * np.linalg.norm([1, 0])))
-                        
+                            np.dot(vector, [1, 0]) / (np.linalg.norm(vector) * np.linalg.norm([1, 0])))
+
                         self.vector_dir = angle_rad
 
-                hexagon = Hexagon(self.positions[i][j][0], self.positions[i][j][1], vector_dir=self.vector_dir, show_arrows=show_arrows)
+                hexagon = Hexagon(self.positions[i][j][0], self.positions[i][j][1], vector_dir=self.vector_dir,
+                                  show_arrows=show_arrows)
                 hexagon.obstacle = 0
                 self._hexs_[i].append(hexagon)
                 if self.vector_dir:
@@ -370,11 +544,125 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
         self.path = []
         self.add_items_to_group()
 
-    def add_items_to_group(self):
-        for line in range(len(self.hexs)):
-            for cell in range(len(self.hexs[line])):
-                for item in self.hexs[line][cell].content:
-                    self.addToGroup(item)
+    def modify_lanes(self, add: bool, edge_cell_index: list, position: list, direction: str):
+        if add:
+            orientation, _ = self.get_direction_to_table(edge_cell_index[0], edge_cell_index[1], rows=self.rows,
+                                                         cols=self.cols)
+            cell_to_connect_center = self.positions[edge_cell_index[0]][edge_cell_index[1]]
+
+            # x = self.hex_size * 0 * orientation[0] + self.positions[edge_cell_index[0]][edge_cell_index[1]][0] - self.hex_size * 0.5
+            # y = self.lane_height * orientation[1] + self.positions[edge_cell_index[0]][edge_cell_index[1]][1]
+            data_to_create_rep = [edge_cell_index[0], edge_cell_index[1], direction]
+            x, y = [0, 0]
+            if orientation[0] == 0:
+                if orientation[1] == 1:
+                    x = self.positions[edge_cell_index[0]][edge_cell_index[1]][0] - self.lane_height - self.hex_size * 0.9
+                    y = self.positions[edge_cell_index[0]][edge_cell_index[1]][1] - self.lane_width * 0.5
+                else:
+                    x = self.positions[edge_cell_index[0]][edge_cell_index[1]][0] + self.lane_height * 0.36
+                    y = self.positions[edge_cell_index[0]][edge_cell_index[1]][1] - self.lane_width * 0.5
+                rect = Lane(x, y, self.lane_height, self.lane_width, show_arrow=self.show_arrows,
+                            orientation=orientation, parent=self, input_dir=direction, i=edge_cell_index[0],
+                            j=edge_cell_index[1])
+                self._content.append(
+                    [x, y, self.lane_height, self.lane_width, self.show_arrows, orientation, self, direction,
+                     edge_cell_index[0], edge_cell_index[1]])
+            else:
+                if orientation[0] == -1:
+                    x = self.positions[edge_cell_index[0]][edge_cell_index[1]][0] - self.lane_width * 0.5
+                    y = self.positions[edge_cell_index[0]][edge_cell_index[1]][
+                            1] - self.lane_height - self.hex_size * 0.9
+                else:
+                    x = self.positions[edge_cell_index[0]][edge_cell_index[1]][0] - self.lane_width * 0.5
+                    y = self.positions[edge_cell_index[0]][edge_cell_index[1]][1] + self.hex_size * 0.9
+                rect = Lane(x, y, self.lane_width, self.lane_height, show_arrow=self.show_arrows,
+                            orientation=orientation, parent=self, input_dir=direction, i=edge_cell_index[0],
+                            j=edge_cell_index[1])
+                self._content.append(
+                    [x, y, self.lane_width, self.lane_height, self.show_arrows, orientation, self, direction,
+                     edge_cell_index[0], edge_cell_index[1]])
+
+            for c in rect.content:
+                self._lane_list.append(c)
+                self.addToGroup(c)
+            data_to_create_rep.append([x, y])
+            return data_to_create_rep
+
+    @staticmethod
+    def get_direction_to_table(cell_x, cell_y, rows, cols):
+        """
+        This function determines the direction (unit vector or angle) a cell outside the table needs to point to reach the edge of the table.
+
+        Args:
+            cell_x: X-coordinate of the cell outside the table.
+            cell_y: Y-coordinate of the cell outside the table.
+            rows: Number of rows in the table.
+            cols: Number of columns in the table.
+
+        Returns:
+            A tuple containing:
+                - A unit vector pointing towards the table (x, y).
+                - An angle in radians (0, pi/2, pi, pi*3/2, or 2*pi) representing the direction.
+        """
+
+        # Table-top left and bottom right corner coordinates
+        top_left_x, top_left_y = 0, 0
+        bottom_right_x, bottom_right_y = cols - 1, rows - 1
+
+        # Calculate direction based on cell position relative to table edges
+        direction_x = 0
+        direction_y = 0
+        if cell_x == top_left_x:
+            direction_x = -1  # Right towards table
+        elif cell_x == bottom_right_x:
+            direction_x = 1  # Left towards table
+        if cell_y == top_left_y:
+            direction_y = 1  # Up towards table
+        elif cell_y == bottom_right_y:
+            direction_y = -1  # Down towards table
+
+        # Adjust direction for corner cases
+        if direction_x == 0 and (cell_y < top_left_y or cell_y > bottom_right_y):
+            direction_y = 0  # No vertical movement for cells on edges without vertical movement
+
+        if direction_y == 0 and (cell_x < top_left_x or cell_x > bottom_right_x):
+            direction_x = 0  # No horizontal movement for cells on edges without horizontal movement
+
+        # Calculate unit vector and angle based on combined direction
+        if direction_x == 0:
+            unit_vector = (0, direction_y)
+            if direction_y > 0:
+                angle = math.pi / 2
+            else:
+                angle = 3 * math.pi / 2
+        else:
+            unit_vector = (direction_x, 0)
+            if direction_x > 0:
+                angle = 0
+            else:
+                angle = math.pi
+
+        return unit_vector, angle
+
+    def add_items_to_group(self, group=None):
+        if group is None:
+            self._content = []
+            for line in range(len(self.hexs)):
+                for cell in range(len(self.hexs[line])):
+                    for item in self.hexs[line][cell].content:
+                        self.addToGroup(item)
+            for lane in self._lane_list:
+                self.addToGroup(lane)
+        else:
+            for item in group:
+                print("Adding lanes from past stuff")
+                try:
+                    it = Lane(item[0], item[1], item[2], item[3], show_arrow=self.show_arrows, orientation=item[5],
+                              parent=item[6], input_dir=item[7], i=item[8], j=item[9])
+                    for c in it.content:
+                        self.addToGroup(c)
+                except:
+                    print("one hex deleted")
 
     def draw_path_arrows(self, cell_list: list[list[int, int]]):
         self.path = cell_list
@@ -383,6 +671,7 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
 
 class Table_preview(QWidget):
     json_vec_field_filename = r'C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\dataexchange.pkl'
+
     def __init__(self, *args):
         super().__init__(*args)
         self.select_start = None
@@ -391,13 +680,14 @@ class Table_preview(QWidget):
         self.foldable_toolbad: FoldableToolBar | None = None
         self._shared_data = {}
         self._initial_info = {}
-
+        self._foldable_toolbar = None
         self.drag_rectangle = None
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self._package_size = 20
         self.show_arrows = False
         self.angle_field = None
         self._package_size = 60
+        self._lane_representation_list = []
 
         # hover constants
         self.hover_with_mouse = False
@@ -419,14 +709,24 @@ class Table_preview(QWidget):
         self.table_rows = 2
         self.setup_background_scene()
 
-        # TODO: get dimension_x and _y from MainUi and save then as self.cols etc then run the entire update to the preview
+        # TODO: get row_count and _y from MainUi and save then as self.cols etc then run the entire update to the preview
         # self.update_button.clicked.connect(self.update_background_scene)
-
+        objname = self.objectName()
+        self.add_lanes = self.parent.findChild(QPushButton, 'add_lanes')
+        self.remove_lanes = self.parent.findChild(QPushButton, 'remove_lanes')
+        self.add_lanes_in_out = self.parent.findChild(QComboBox, 'add_lanes_in_out')
+        try:
+            self.add_lanes.clicked.connect(self.send_lane_rep_list)
+        except Exception as e:
+            print(f"can't connect the send rep list method because of: {e}")
         self.setup_buttons()
-
         # Variables to track drawing
         self.last_point = None
         self.drawing = False
+
+    def send_lane_rep_list(self):
+        print("Lane rep list sent to toolbar")
+        self.foldable_toolbar._lane_representation_list = self._lane_representation_list
 
     def update_package_location(self):
         # TODO: Use QTimer, maybe 200ms? More, focus on performance, sim is too slow anyways.
@@ -436,13 +736,16 @@ class Table_preview(QWidget):
             Extracts sensor data from shared memory and updates hexagon highlight state.
             Will be first launched after self.launched_button is triggered.
             """
-        try:
+        self._shared_data = shared_mem.retrieve_data()
+        self.background_item: BackgroundItem
+        self.background_item.hexs = self._shared_data[SharedData.sensor_field]
+        '''try:
             self._shared_data = shared_mem.retrieve_data()
             self.background_item: BackgroundItem
             self.background_item.hexs = self._shared_data[SharedData.sensor_field]
         except Exception as e:
             print(f"Simulation is offline because: {e}. We're inside: {self.objectName()}, instance:{self}")
-            
+'''
 
     def setup_buttons(self):
         layout = QVBoxLayout(self)
@@ -498,7 +801,6 @@ class Table_preview(QWidget):
                 self._initial_info['obstacle'].remove(p)
             self.background_item.highlight_point(p, True, obstacle=True)
 
-
     def numpy_array_to_list(self, arr):
         if isinstance(arr, np.ndarray):
             return arr.tolist()  # If arr is a NumPy array, convert it to a list recursively
@@ -521,14 +823,14 @@ class Table_preview(QWidget):
         shared_mem.store_data(self._shared_data)
         self.update_background_scene()  # TODO: Create option not to delete rects + lines
         self.foldable_toolbar
-        #self.scene.addItem(self.background_item)
-        #self.view.setScene(self.scene)
+        # self.scene.addItem(self.background_item)
+        # self.view.setScene(self.scene)
 
     def create_vector_field(self, path_points, vec_fiel, x, y):
         vector_field = [[0 for j in range(y)] for i in range(x)]
         for i in range(len(vec_fiel)):
             for j in range(len(vec_fiel[i])):
-                cell = vec_fiel[i][j] #TODO: If grids topped working, here
+                cell = vec_fiel[i][j]  # TODO: If grids topped working, here
                 vector_field[i][j] = self.get_distance_and_tangent(cell, path_points, self._package_size)
 
         return vector_field
@@ -586,11 +888,18 @@ class Table_preview(QWidget):
         distance = np.linalg.norm(cell_center - projection)
         return distance, projection
 
-    def setup_background_scene(self):  # TODO: implement to be called from MainUi using dimension_x inputs
+    def setup_background_scene(self, items_from_other_instance=None):
         # self.background_item.clear_all_highlight()
+        items = []
+        if items_from_other_instance is not None:
+            items = items_from_other_instance
+        elif self.background_item is not None:
+            items = self.background_item.content
         self.scene.clear()
-        self.background_item = BackgroundItem(scene=self.scene, cols=self.table_rows, rows=self.table_cols,
+        self.background_item = BackgroundItem(scene=self.scene, rows=self.table_rows, cols=self.table_cols,
                                               show_arrows=self.show_arrows, angle_field=self.angle_field)
+        self.background_item.add_items_to_group(items)
+        self.background_item.content = items
         self.scene.addItem(self.background_item)
         self.view.setScene(self.scene)
         self._initial_info = {}
@@ -600,7 +909,6 @@ class Table_preview(QWidget):
         except TypeError:
             self._shared_data = {SharedData.sensor_field: [[0 for j in range(self.table_cols)] for i in
                                                            range(self.table_rows)]}
-        
 
     def update_foreground_scene(self):
         self.scene.clear()
@@ -648,6 +956,12 @@ class Table_preview(QWidget):
                     self.scene.addItem(line)
                 self.last_point = current_point
         if self.objectName() == 'show_table':
+            if event.type() == QEvent.MouseButtonPress and self.add_lanes.isChecked():
+                direction = self.add_lanes_in_out.currentText()
+                self.modify_lanes(add=True, position=self.get_cursor_position_in_view(), direction=direction)
+            elif event.type() == QEvent.MouseButtonPress and self.remove_lanes.isChecked():
+                direction = self.add_lanes_in_out.currentText()
+                self.modify_lanes(add=False, position=self.get_cursor_position_in_view(), direction=direction)
             return None
         elif event.type() == QEvent.MouseButtonPress and self.select_start.isChecked():
             self._initial_info['start'] = \
@@ -661,7 +975,65 @@ class Table_preview(QWidget):
                 self._initial_info['obstacle'] = []
             p = self.closest_grid_center(self.background_item.positions, self.get_cursor_position_in_view())[1]
             self._initial_info['obstacle'].append(p)
+        print(self._initial_info)
         self.highlight_after_depress()
+
+    def modify_lanes(self, add: bool = True, position: float | None = None, direction: str | None = None):
+        print("function called")
+        if add:
+            closest_cell_center = \
+                self.closest_grid_center(self.background_item.positions, self.get_cursor_position_in_view())[1]
+            data_to_create_rep = self.background_item.modify_lanes(add=True, edge_cell_index=closest_cell_center,
+                                                                   position=position, direction=direction)
+            t = LaneGraphicRepresentation(*data_to_create_rep, count_for_name=len(self._lane_representation_list)+1)
+            self._lane_representation_list.append(t)
+            print(f'We added lane {str(t)}')
+
+        elif not add:
+            mouse_pos = self.get_cursor_position_in_view()
+            self.find_closest_rect_in_group(self.background_item, mouse_pos, )  # TODO: fix, good luck though
+            #   self.background_item.modify_lanes(add=True, edge_cell_index=closest_cell_center, position=position, direction=direction)
+
+    @staticmethod
+    def find_closest_rect_in_group(group: QGraphicsItemGroup, mouse_pos: QPointF,
+                                   threshold_rect: QRectF) -> QGraphicsRectItem | None:
+        """
+        This function finds the closest QGraphicsRectItem within a rectangular threshold from the mouse position in a QGraphicsItemGroup.
+
+        Args:
+            group: The QGraphicsItemGroup to search within.
+            mouse_pos: The position of the mouse (QPointF).
+            threshold_rect: The rectangular threshold defining the search area (QRectF).
+
+        Returns:
+            The closest QGraphicsRectItem within the threshold, or None if no items are found.
+        """
+        closest_item: QGraphicsRectItem | None = None
+        closest_distance = float("inf")
+
+        # Loop through child items of the group
+        for child in group.children():
+            if not isinstance(child, QGraphicsRectItem):
+                continue  # Skip non-rect items
+
+            # Check if item bounding rect intersects the threshold rect
+            item_rect = child.boundingRect().translated(child.pos())
+            if not item_rect.intersects(threshold_rect):
+                continue  # Skip items outside threshold
+
+            # Calculate distance between mouse and item center
+            item_center = item_rect.center()
+            distance = mouse_pos.distanceToPoint(item_center)
+
+            # Update closest item if closer distance is found
+            if distance < closest_distance:
+                closest_distance = distance
+                closest_item = child
+
+                # Delete the closest item if found
+            if closest_item is not None:
+                group.removeItemGroup(closest_item)  # Remove from group
+                del closest_item  # Delete the item object
 
     def get_cursor_position_in_view(self):
         # cursor_pos = win32api.GetCursorPos()
@@ -699,7 +1071,15 @@ class Table_preview(QWidget):
     def initial_info(self):
         return self._initial_info
 
-    def update_and_draw_rectangle(self): # obsolete 
+    @property
+    def foldable_toolbar(self):
+        return self._foldable_toolbar
+
+    @foldable_toolbar.setter
+    def foldable_toolbar(self, value):
+        self._foldable_toolbar = value
+
+    def update_and_draw_rectangle(self):  # obsolete
         # TODO: solve rect offset issues
         return None  # TODO: Fix the offset and delete this later
         cursor_pos = self.get_cursor_position_in_view()
@@ -744,156 +1124,6 @@ class Table_preview(QWidget):
         print(F"Foldable toolbar")
         self.foldable_toolbar: FoldableToolBar = val
 
-class FoldableToolBar(QWidget):
-    def __init__(self, parent=None):
-        super(FoldableToolBar, self).__init__(parent)
-        self.package_size_spin_box = None
-        self.setObjectName("FoldableToolBar")
-        self.is_collapsed = False
-
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self.setMinimumWidth(300)
-        self.layout = QHBoxLayout(self)
-        self.header_label = QPushButton(">")
-        self.header_label.setFixedSize(30, 70)
-        self.content_widget = QWidget()
-        self.content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.content_widget.setMinimumWidth(200)
-
-        self.layout.addWidget(self.header_label)
-        self.header_label.clicked.connect(self.toggle_collapse)
-
-        self.set_content()
-
-    def set_content(self):
-        self.tab = QTabWidget()
-        self.tab.setObjectName("Edit_area_tab")
-        self.tab_manual = QWidget()
-        self.tab_auto = QWidget()
-        self.tab.addTab(self.tab_manual, "Manual")
-        self.tab.addTab(self.tab_auto, "Automatic")
-        # manual Tab
-        lay = QVBoxLayout(self.tab_manual)
-        # box size spin box
-        self.package_size_spin_box = QSpinBox()
-        self.package_size_spin_box.setMinimum(10)
-        self.package_size_spin_box.setValue(60)
-        self.package_size_spin_box.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.spin_box_label = QLabel("Package size: ")
-        hspin_label_lay = QHBoxLayout()
-        hspin_label_lay.addWidget(self.spin_box_label)
-        hspin_label_lay.addWidget(self.package_size_spin_box)
-        self.spin_box_label_widget = QWidget()
-        self.spin_box_label_widget.setLayout(hspin_label_lay)
-        # button to start putting waypoints
-        self.waypoint_pins = QPushButton("Waypoints")
-
-        self.waypoint_pins.setCheckable(True)
-
-        self.pick_wayp_list = QComboBox()
-        self.pick_wayp_list.addItem("Waypoint - 1")
-        self.pick_wayp_list.addItem("Waypoint - 2")
-
-        self.list_view = QListView()
-        self.model = QStandardItemModel()  # TODO: Create a signal to know when a box has been created to insert to listview
-        item1 = QStandardItem("Waypoint point - 1")
-        item2 = QStandardItem("Waypoint point - 2")
-        self.model.appendRow(item1)
-        self.model.appendRow(item2)
-        self.list_view.setModel(self.model)
-
-        # fill the layout
-        lay.addWidget(self.spin_box_label_widget)
-        lay.addWidget(self.waypoint_pins)
-        lay.addWidget(self.pick_wayp_list)  # TODO: connect indexChanged to model listview different self.coor_list
-        lay.addWidget(self.list_view)
-
-        # automatic Tab
-        lay_a = QVBoxLayout(self.tab_auto)
-        self.automatic_paths = QComboBox()
-        self.automatic_list = QListView()
-        self.automatic_model = QStandardItemModel()
-
-        self.select_start = QPushButton('start')
-        self.select_end = QPushButton('end')
-        self.select_obstacle = QPushButton('obstacle')
-        self.select_start.setCheckable(True)
-        self.select_end.setCheckable(True)
-        self.select_obstacle.setCheckable(True)
-        self.select_start.setObjectName('start')
-        self.select_end.setObjectName('end')
-        self.select_obstacle.setObjectName('obstacle')
-
-        self.auto_button_w = QWidget()
-        self.auto_button_lay = QHBoxLayout(self.auto_button_w)
-        self.auto_button_lay.addWidget(self.select_start)
-        self.auto_button_lay.addWidget(self.select_end)
-        self.auto_button_lay.addWidget(self.select_obstacle)
-
-        self.automatic_list.setModel(self.automatic_model)
-
-        self.auto_package_size_spin_box = QSpinBox()
-        self.auto_package_size_spin_box.setMinimum(10)
-        self.auto_package_size_spin_box.setValue(60)
-        self.auto_package_size_spin_box.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.auto_spin_box_label = QLabel("Package size: ")
-        auto_hspin_label_lay = QHBoxLayout()
-        auto_hspin_label_lay.addWidget(self.auto_spin_box_label)
-        auto_hspin_label_lay.addWidget(self.auto_package_size_spin_box)
-        self.auto_spin_box_label_widget = QWidget()
-        self.auto_spin_box_label_widget.setLayout(auto_hspin_label_lay)
-
-        lay_a.addWidget(self.auto_spin_box_label_widget)
-        lay_a.addWidget(self.auto_button_w)
-        lay_a.addWidget(self.automatic_paths)
-        lay_a.addWidget(self.automatic_list)
-
-        self.layout.addWidget(self.tab)
-
-    def insert_item_to_list(self, item, manual=True, path=False):
-        if manual and not path:
-            self.model.appendRow(QStandardItemModel(item))
-        elif not manual and not path:
-            self.automatic_model.appendRow(QStandardItemModel(item))
-        elif manual and path:
-            self.pick_wayp_list.addItem(item)
-        elif not manual and path:
-            self.automatic_paths.addItem(item)
-
-    def toggle_collapse(self):
-        if self.is_collapsed:
-            # self._expand_animation()
-            self.tab.show()
-            self.setMaximumWidth(400)  # TODO: width too big, change after adding all widget to something smaller
-            self.setMinimumWidth(400)
-            self.header_label.setText(">")
-        else:
-            # self._collapse_animation()
-            self.tab.hide()
-            self.setMaximumWidth(50)
-            self.setMinimumWidth(50)
-            self.header_label.setText("<")
-        self.is_collapsed = not self.is_collapsed
-
-    def _collapse_animation(self):
-        print(f"_collapse_animation, width: {self.tab.width()}")
-        animation = QPropertyAnimation(self.tab, b"minimumWidth")
-        animation.setDuration(250)
-        animation.setStartValue(self.tab.width())
-        animation.setEndValue(50)
-        animation.setEasingCurve(QEasingCurve.Linear)
-        animation.finished.connect(lambda: self.tab.hide())
-        animation.start()
-
-    def _expand_animation(self):
-        print(f"_expand_animation, width: {self.tab.width()}")
-        animation = QPropertyAnimation(self.tab, b"minimumWidth")
-        animation.setDuration(250)
-        animation.setStartValue(0)
-        animation.setEndValue(self.tab.width())
-        animation.setEasingCurve(QEasingCurve.Linear)
-        animation.finished.connect(lambda: self.tab.show())
-        animation.start()
 
 
 class MainUi(QMainWindow):
@@ -911,7 +1141,7 @@ class MainUi(QMainWindow):
         standard_sheet = "standard_style_sheet.qss"
         dark_sheet = "QTDark.stylesheet"
         # Load the stylesheet
-        with open(rf"{os.path.realpath(os.path.dirname(__file__))}\ui_files\{standard_sheet}", 'r') as f:  
+        with open(rf"{os.path.realpath(os.path.dirname(__file__))}\ui_files\{standard_sheet}", 'r') as f:
             stylesheet = f.read()
 
         # Apply the stylesheet to the main window
@@ -924,6 +1154,8 @@ class MainUi(QMainWindow):
         self.table_preview: Table_preview = self.findChild(QWidget, 'show_table')
         self.table_preview_2: Table_preview = self.findChild(QWidget, 'table_draw_enabled')
         self.foldable_toolbar = self.findChild(QWidget, 'FoldableToolBar')
+        self.table_preview.foldable_toolbar = self.foldable_toolbar
+        self.table_preview_2.foldable_toolbar = self.foldable_toolbar
 
         self.initialize()
 
@@ -969,12 +1201,19 @@ class MainUi(QMainWindow):
 
     def switch_menu(self, action=None):
         if not action:
+            print("here")
             if self.stackedWidget_3000.currentIndex() == 1:
                 self.stackedWidget_3000.setCurrentIndex(0)
+                content_from_other_table = self.table_preview.background_item.content
+                self.table_preview_2.setup_background_scene(content_from_other_table)
+
             else:
                 self.stackedWidget_3000.setCurrentIndex(1)
 
         elif action.objectName() == 'draw_screen':
+            content_from_other_table = self.table_preview.background_item.content
+            self.table_preview_2.setup_background_scene(content_from_other_table)
+
             action.setChecked(True)
             self.actionEdit_table_data.setChecked(False)
             self.stackedWidget_3000.setCurrentIndex(0)
@@ -997,26 +1236,28 @@ class MainUi(QMainWindow):
             super().keyPressEvent(event)
 
     def reload_dicts(self):
-        x = self.dimension_x.value()
-        y = self.dimension_y.value()
-        data = {}
-        data[SharedData.sensor_field] = [[0 for i in range(x)] for j in range(y)]
-        data[SharedData.vector_field] = [[[0, 0, 0] for i in range(x)] for j in range(y)]
+        x = self.row_count.value()
+        y = self.col_count.value()
+        print("Created the dictionary")
+        data = {SharedData.sensor_field: [[0 for i in range(x)] for j in range(y)],
+                SharedData.vector_field: [[[0, 0, 0] for i in range(x)] for j in range(y)],
+                SharedData.simulation_information: {'rows': x, 'cols': y}}
+
         shared_mem.store_data(data=data)
 
     def set_triggers(self):
         self.create_progressBar: QProgressBar = self.findChild(QProgressBar, "create_progressBar")
         self.create_progressBar.setValue(0)
         self.button_create.clicked.connect(self.create_webot_world_file)
-        self.dimension_x.valueChanged.connect(self.update_table_preview)
-        self.dimension_y.valueChanged.connect(self.update_table_preview)
+        self.row_count.valueChanged.connect(self.update_table_preview)
+        self.col_count.valueChanged.connect(self.update_table_preview)
         self.foldable_toolbar.package_size_spin_box.valueChanged.connect(
             lambda: self.table_preview_2.change_pen_size(self.foldable_toolbar.package_size_spin_box.value()))
         self.foldable_toolbar: FoldableToolBar
         t = self.foldable_toolbar.waypoint_pins
         t.clicked.connect(lambda: self.table_preview_2.mouse_hover(t))
         self.table_preview_2.set_foldable_bar(self.foldable_toolbar)
-        
+
         self.reload_dicts()
 
     def update_table_preview(self):  # TODO: deprecated, remove later
@@ -1024,30 +1265,24 @@ class MainUi(QMainWindow):
         self.scene = QGraphicsScene()
         self.brush_blue = QBrush(Qt.blue)
         self.pen = QPen()
-        self.table_preview.set_background_parameters(self.dimension_x.value(), self.dimension_y.value(),
-                                                     self.show_arrows)
-        self.table_preview_2.set_background_parameters(self.dimension_x.value(), self.dimension_y.value(),
-                                                       self.show_arrows)
+        self.table_preview.set_background_parameters(rows=self.row_count.value(), cols=self.col_count.value(),
+                                                     show_arrows=self.show_arrows)
+        self.table_preview_2.set_background_parameters(rows=self.row_count.value(), cols=self.col_count.value(),
+                                                       show_arrows=self.show_arrows)
         # self.Table_preview.setScene(self.scene)
         self.reload_dicts()
 
     def create_webot_world_file(self):
         # TODO: connect clicking the button with extracting all the values from the UI
         self.create_progressBar.setValue(0)
-        self.robot.translation.x = float(self.location_x.text())
-        self.robot.translation.y = float(self.location_y.text())
-        self.robot.translation.z = float(self.location_z.text())
         try:
-            self.robot.rotation.x = self.rotation_x.value()
-            self.robot.rotation.y = self.rotation_y.value()
-            self.robot.rotation.z = self.rotation_z.value()
-            self.robot.rotation.o = self.rotation_o.value()
 
-            self.robot.dimensions.x = self.dimension_x.value()
-            self.robot.dimensions.y = self.dimension_y.value()
+            self.robot.dimensions.x = self.row_count.value()
+            self.robot.dimensions.y = self.col_count.value()
 
             self.robot.filename = self.filename_name.text()
             self.robot.controller = self.controller_name.text()
+            self.robot.lane_data = self.table_preview.background_item.content
         except Exception as e:
             print(e)
         t = 0
@@ -1060,17 +1295,8 @@ class MainUi(QMainWindow):
         self.filename_name.setText(self.robot.filename)
         self.controller_name.setText(self.robot.controller)
 
-        self.location_x.setValue(self.robot.translation.x)
-        self.location_y.setValue(self.robot.translation.y)
-        self.location_z.setValue(self.robot.translation.z)
-
-        self.rotation_x.setValue(self.robot.rotation.x)
-        self.rotation_y.setValue(self.robot.rotation.y)
-        self.rotation_z.setValue(self.robot.rotation.z)
-        self.rotation_o.setValue(self.robot.rotation.o)
-
-        self.dimension_x.setValue(self.robot.dimensions.x)
-        self.dimension_y.setValue(self.robot.dimensions.y)
+        self.row_count.setValue(self.robot.dimensions.x)
+        self.col_count.setValue(self.robot.dimensions.y)
 
         # self.robot.get_filename()
         # TODO: set table tran, rot, dimen .... default
@@ -1115,13 +1341,10 @@ class MainUi(QMainWindow):
             self.table_preview_2: Table_preview
             # Get the grid
             grid = self.table_preview_2.background_item.obstacle
-            print(f"The grid is: {grid}")
             # Get start and end positions
-            self.table_preview_2: Table_preview
             d = self.table_preview_2.initial_info
-            print(f"dict after launch: {d}")
             if 'end' not in d.keys() and 'start' not in d.keys():
-                print(F"select start & end") 
+                print(F"select start & end")
                 return None
             start = d['start']
             end = d['end']
@@ -1140,6 +1363,8 @@ class MainUi(QMainWindow):
             print("Sent command to simulation")
             d = shared_mem.retrieve_data()
             d[SharedData.vector_field] = self.table_preview_2.background_item.vector_field
+            d[SharedData.simulation_information]['rows'] = len(grid)
+            d[SharedData.simulation_information]['cols'] = len(grid[0])
             shared_mem.store_data(d)
             print(f"After creating the commands, this is the data: {d}")
             # wait for feedback
@@ -1151,7 +1376,7 @@ class MainUi(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    r = Robot(translation=[0, 0, 0.1], dimensions=[5, 5], rotation=[0, 0, 1, 0], controller=r'<extern>')
+    r = Robot(translation=[0, 0, 0.1], dimensions=[5, 5], rotation=[0, 0, 1, 0], controller=r'cell_controller_0_2')
     ui = MainUi(r)
     ui.show()
     app.exec_()

@@ -18,7 +18,6 @@ def SemaphoreWrapper(func):
         sem.acquire()
         res = func(*args, **kwargs)
         sem.release()
-        print("shrm accessed")
         return res
 
     return wrapper
