@@ -8,19 +8,39 @@ from PyQt5.QtWidgets import QWidget, QSizePolicy, QListView, QHBoxLayout, QVBoxL
 
 class LaneGraphicRepresentation:
     def __init__(self, i: int, j: int, direction_str: str, position_in_gui: list, count_for_name: int):
-        self.i = i
-        self.j = j
+        self._i = i
+        self._j = j
         self.direction_str = direction_str
         self._position = position_in_gui
         self._name = f'{self.direction_str} {count_for_name}'
 
     @property
     def position(self):
-        return self.position
+        return self._position
 
     @property
     def name(self):
         return self._name
+
+    @property
+    def coordinates(self):
+        return self._i, self._j
+
+    @property
+    def i(self):
+        return self._i
+
+    @i.setter
+    def i(self, value):
+        self._i = value
+
+    @property
+    def j(self):
+        return self._j
+
+    @j.setter
+    def j(self, value):
+        self._j = value
 
     def __str__(self):
         return f"Lane named: {self._name} adjacent to cell [{self.i}, {self.j}]"

@@ -172,15 +172,13 @@ class CelluvoyerGrid:
 
 
 # Example usage
-'''grid = [  # 0 represents empty cell, 1 represents obstacle
+grid = [  # 0 represents empty cell, 1 represents obstacle
     [0, 0, 0, 0, 0, 0],
     [0, 1, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0],
     [0, 0, 0, 1, 0, 0],
     [0, 0, 0, 0, 0, 0],
-]'''
-grid = [[0, 1, 0, 0, 1, 0],
-        [0, 0, 0, 1, 0, 0]]
+]
 start = (0, 0)
 end = (4, 4)
 

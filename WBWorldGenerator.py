@@ -110,6 +110,8 @@ class DistSensor:
 
 
 class Cell:
+    wheel_height = 0.025
+    wheel_radius = 0.027
 
     def __init__(self, x, y, translation, wheel_shape, cylinder_shape):
         self.wheel_shape = wheel_shape
@@ -170,8 +172,8 @@ class Cell:
                               transparency 1
                             }}
                             geometry Cylinder {{
-                              height 0.025
-                              radius 0.027
+                              height {self.wheel_height}
+                              radius {self.wheel_radius}
                             }}
                           }}
                           CadShape {{
@@ -183,6 +185,7 @@ class Cell:
                       }}
                     ]
                     name {self.joint1.yes_quotes()}
+                    contactMaterial "InteriorWheelMat"
                     boundingObject USE wheel_shape
                     physics Physics {{
                     }}
@@ -213,8 +216,8 @@ class Cell:
                               transparency 1
                             }}
                             geometry Cylinder {{
-                              height 0.025
-                              radius 0.027
+                              height {self.wheel_height}
+                              radius {self.wheel_radius}
                             }}
                           }}
                           CadShape {{
@@ -226,6 +229,7 @@ class Cell:
                       }}
                     ]
                     name {self.joint2.yes_quotes()}
+                    contactMaterial "InteriorWheelMat"
                     boundingObject USE wheel_shape
                     physics Physics {{
                     }}
@@ -256,8 +260,8 @@ class Cell:
                               transparency 1
                             }}
                             geometry Cylinder {{
-                              height 0.025
-                              radius 0.027
+                              height {self.wheel_height}
+                              radius {self.wheel_radius}
                             }}
                           }}
                           CadShape {{
@@ -269,6 +273,7 @@ class Cell:
                       }}
                     ]
                     name {self.joint3.yes_quotes()}
+                    contactMaterial "InteriorWheelMat"
                     boundingObject USE wheel_shape
                     physics Physics {{
                     }}
@@ -404,8 +409,8 @@ class Header:
         body_str = str(self.robot_object)
         conveyor_str = self.create_conveyor()
 
-        self.orientation = r"orientation 0.1446426463512726 -0.9891624130165184 0.025223511489070028 4.6692983323171"
-        self.position = r"position 0.007286806676128004 0.20276337840156394 1.629154495736184"
+        self.orientation = r"orientation -0.5773502691896258 0.5773502691896258 0.5773502691896258 2.0944"
+        self.position = r"position 9.967877640690377e-18 2.9618836418051407e-16 1.6417400696059563"
 
         self.header = f"""#VRML_SIM R2023b utf8
 
@@ -414,6 +419,19 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/floors/protos/RectangleArena.proto"
 
 WorldInfo {{
+  contactProperties [
+    ContactProperties {{
+      material1 "InteriorWheelMat"
+      coulombFriction [
+        0, 2, 0
+      ]
+      frictionRotation -0.785398 0
+      bounce 0
+      forceDependentSlip [
+        10, 0
+      ]
+    }}
+  ]
 }}
 Viewpoint {{
   {self.orientation}

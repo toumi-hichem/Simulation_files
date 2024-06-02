@@ -3,7 +3,6 @@ import math
 import os
 import pickle
 import uuid
-
 from shared_data import SharedData, shared_mem
 
 # import statsmodels.api as sm
@@ -37,9 +36,11 @@ from QtUtilities import FoldableToolBar, Package, LaneGraphicRepresentation
 
 class Hexagon(QGraphicsPolygonItem):
     # TODO: option to remake one cell at a time
-    def __init__(self, center_x, center_y, vector_dir=math.pi, show_arrows=True, highligh=0, hex_size=40, *__args):
+    def __init__(self, center_x, center_y, vector_dir=0, show_arrows=True, highligh=0, hex_size=40, i=None, j=None, *__args):
         super().__init__(*__args)  # TODO: set obstacle/highlight/selected priorities
         # Hexagon
+        self.i = i
+        self.j = j
         self._arrow = []
         self.hex_size = hex_size
         self.center_x = center_x
@@ -102,6 +103,9 @@ class Hexagon(QGraphicsPolygonItem):
         self.setBrush(self.default_brush)
 
     def create_arrow(self, vector_dir=None):
+        if (self.i, self.j) in [(3, 4), (4, 4)]:
+            self.vector_dir = math.radians(120)
+            vector_dir = math.radians(120)
         if not vector_dir:
             vector_dir = self.vector_dir
         if not self.show_arrows or vector_dir is None:
@@ -127,6 +131,8 @@ class Hexagon(QGraphicsPolygonItem):
         arrow_right.setPen(self.vector_pen)
         self._arrow = [line, arrow_left, arrow_right]
         self._content = [self, ] + self._arrow
+        if (self.i, self.j) in [(3, 4), (4, 4)]:
+            print(f'Creating hex {(self.i, self.j)} with angle: {math.degrees(vector_dir)} vs {math.degrees(self.vector_dir)}')
 
     def style_arrow(self):
         self.vector_pen = QPen(QColor("yellow"))
@@ -386,7 +392,7 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
 
         self.vector_pen = QPen(QColor("yellow"))
         self.vector_brush = QBrush(QColor('blue'))
-        self.vector_dir = math.pi
+        self.vector_dir = None
 
         self.pen = QPen(QColor("green"))
         self.brush = QBrush(QColor('blue'))
@@ -502,9 +508,26 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                     if (i, j) in self.path:
                         current_index = self.path.index((i, j))
                         if current_index == len(self.path) - 1:
-                            show_arrows = False
-                            self.vector_dir = None
+                            for lane in self.lane_list:
+                                print(F"Checking lane number: {lane.coordinates} vs {i}, {j}")
+                                if lane.i == i and lane.j == j:
+                                    print(f'found the correct lane!!, that"s: {i}, {j}')
+                                    x_end, y_end = self.path[current_index]
+                                    x_start, y_start = i, j
+
+                                    x_end, y_end = self.positions[x_start][y_start]
+                                    x_start, y_start = lane.position
+
+                                    t = [x_start - x_end, y_start - y_end]
+                                    vector = np.array(t)
+                                    angle_rad = np.arccos(
+                                        np.dot(vector, [1, 0]) / (np.linalg.norm(vector) * np.linalg.norm([1, 0])))
+                                    # TODO: You keep tackling runtime mistakes here
+                                    self.vector_dir = angle_rad
+                                    if (i, j )in self.path:
+                                        print(f"This is the end, {[i, j]}: {self.vector_dir}")
                         else:
+
                             x_end, y_end = self.path[current_index]
                             x_start, y_start = self.path[current_index + 1]
 
@@ -517,6 +540,8 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                                 np.dot(vector, [1, 0]) / (np.linalg.norm(vector) * np.linalg.norm([1, 0])))
                             # angle_rad = math.atan2(t[1], t[0])
                             self.vector_dir = angle_rad
+                            if (i, j) in self.path:
+                                print(f"This is part of the path, {[i, j]}: {math.degrees(self.vector_dir)}")
                     else:
                         show_arrows = False
                         self.vector_dir = None
@@ -532,14 +557,18 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
 
                         self.vector_dir = angle_rad
 
-                hexagon = Hexagon(self.positions[i][j][0], self.positions[i][j][1], vector_dir=self.vector_dir,
-                                  show_arrows=show_arrows)
-                hexagon.obstacle = 0
-                self._hexs_[i].append(hexagon)
                 if self.vector_dir:
+                    if (i, j) in [(3, 4), (4, 4)]:
+                        print(f'Creating hex {(i, j)} with angle: {math.degrees(self.vector_dir)}')
+                    hexagon = Hexagon(self.positions[i][j][0], self.positions[i][j][1], vector_dir=self.vector_dir,
+                                      show_arrows=show_arrows, i=i, j=j)
                     self._vector_field[i].append([cos(self.vector_dir), sin(self.vector_dir), 0])
+                    self._hexs_[i].append(hexagon)
                 else:
+                    hexagon = Hexagon(self.positions[i][j][0], self.positions[i][j][1], vector_dir=0,
+                                      show_arrows=show_arrows)
                     self._vector_field[i].append([0, 0, 0])
+                    self._hexs_[i].append(hexagon)
 
         self.path = []
         self.add_items_to_group()
@@ -556,7 +585,8 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
             x, y = [0, 0]
             if orientation[0] == 0:
                 if orientation[1] == 1:
-                    x = self.positions[edge_cell_index[0]][edge_cell_index[1]][0] - self.lane_height - self.hex_size * 0.9
+                    x = self.positions[edge_cell_index[0]][edge_cell_index[1]][
+                            0] - self.lane_height - self.hex_size * 0.9
                     y = self.positions[edge_cell_index[0]][edge_cell_index[1]][1] - self.lane_width * 0.5
                 else:
                     x = self.positions[edge_cell_index[0]][edge_cell_index[1]][0] + self.lane_height * 0.36
@@ -664,8 +694,9 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                 except:
                     print("one hex deleted")
 
-    def draw_path_arrows(self, cell_list: list[list[int, int]]):
+    def draw_path_arrows(self, cell_list: list[list[int, int]], lane_list):
         self.path = cell_list
+        self.lane_list = lane_list
         self.create_table()
 
 
@@ -674,6 +705,7 @@ class Table_preview(QWidget):
 
     def __init__(self, *args):
         super().__init__(*args)
+        self.show_ghost_simulation = None
         self.select_start = None
         self.select_end = None
         self.select_obstacle = None
@@ -985,7 +1017,7 @@ class Table_preview(QWidget):
                 self.closest_grid_center(self.background_item.positions, self.get_cursor_position_in_view())[1]
             data_to_create_rep = self.background_item.modify_lanes(add=True, edge_cell_index=closest_cell_center,
                                                                    position=position, direction=direction)
-            t = LaneGraphicRepresentation(*data_to_create_rep, count_for_name=len(self._lane_representation_list)+1)
+            t = LaneGraphicRepresentation(*data_to_create_rep, count_for_name=len(self._lane_representation_list) + 1)
             self._lane_representation_list.append(t)
             print(f'We added lane {str(t)}')
 
@@ -1075,6 +1107,14 @@ class Table_preview(QWidget):
     def foldable_toolbar(self):
         return self._foldable_toolbar
 
+    @property
+    def lane_representation_list(self):
+        return self._lane_representation_list
+
+    @lane_representation_list.setter
+    def lane_representation_list(self, value):
+        self._lane_representation_list = value
+
     @foldable_toolbar.setter
     def foldable_toolbar(self, value):
         self._foldable_toolbar = value
@@ -1124,13 +1164,18 @@ class Table_preview(QWidget):
         print(F"Foldable toolbar")
         self.foldable_toolbar: FoldableToolBar = val
 
+    def show_ghost(self, button: QPushButton):
+        if button.isChecked():
+            self.show_ghost_simulation = True
+        else:
+            self.show_ghost_simulation = False
 
 
 class MainUi(QMainWindow):
     sensor_refresh_rate = 200  # ms
 
-    def __init__(self, robot: Robot):
-        super(MainUi, self).__init__()
+    def __init__(self, robot: Robot, *args, **kwargs):
+        super(MainUi, self).__init__(*args, **kwargs)
         self.cell_grid = None
         ui_filename = rf'{os.path.realpath(os.path.dirname(__file__))}\ui_files\window_0_1.ui'
         loadUi(ui_filename, self)
@@ -1199,13 +1244,16 @@ class MainUi(QMainWindow):
         self.actionPath_and_preview.setObjectName('draw_screen')
         self.actionEdit_table_data.setObjectName('preview_screen')
 
+        self.actionShow_ghost.triggered.connect(lambda: self.table_preview_2.show_ghost(self.actionShow_ghost))
+
+
     def switch_menu(self, action=None):
         if not action:
-            print("here")
             if self.stackedWidget_3000.currentIndex() == 1:
                 self.stackedWidget_3000.setCurrentIndex(0)
                 content_from_other_table = self.table_preview.background_item.content
                 self.table_preview_2.setup_background_scene(content_from_other_table)
+                self.table_preview_2.lane_representation_list = self.table_preview.lane_representation_list
 
             else:
                 self.stackedWidget_3000.setCurrentIndex(1)
@@ -1213,6 +1261,7 @@ class MainUi(QMainWindow):
         elif action.objectName() == 'draw_screen':
             content_from_other_table = self.table_preview.background_item.content
             self.table_preview_2.setup_background_scene(content_from_other_table)
+            self.table_preview_2.lane_representation_list = self.table_preview.lane_representation_list
 
             action.setChecked(True)
             self.actionEdit_table_data.setChecked(False)
@@ -1352,12 +1401,14 @@ class MainUi(QMainWindow):
             # do the calculation
             self.cell_grid = CelluvoyerGrid(grid)
             paths = CelluvoyerGrid.a_star_search(self.cell_grid, start, end, max_paths=2)
+            assert start in paths[0] and end in paths[0], "start and end not in paths"
             self.table_preview_2.background_item.highlight_list(paths[0])
             t = self.table_preview_2.initial_info
             print(f"The final path is: {paths}")
             # show arrows + highlight:
             # TODO: Inside this, create vector field and return it then save it to shared mem
-            self.table_preview_2.background_item.draw_path_arrows(paths[0])
+            self.table_preview_2.background_item.draw_path_arrows(paths[0],
+                                                                  lane_list=self.table_preview.lane_representation_list)
             self.table_preview_2.background_item.highlight_point(t)
             # send the command
             print("Sent command to simulation")
