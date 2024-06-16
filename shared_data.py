@@ -1,6 +1,6 @@
 from multiprocessing import shared_memory, Semaphore
 import pickle, os
-
+from loggerClass import logger
 # TODO: Fix array allocation size
 
 sem = Semaphore()
@@ -44,7 +44,7 @@ class SharedData:
                 print("This class accessed something else")
         else:
             self.mem = shared_memory.SharedMemory(name, create=False, size=self.mem_size)
-            print("This class accessed something else")
+            logger.info("This class accessed something else")
         self.mem_offset = mem_offset
 
     @SemaphoreWrapper

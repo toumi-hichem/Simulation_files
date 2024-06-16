@@ -90,6 +90,9 @@ class FoldableToolBar(QWidget):
         self.header_label.clicked.connect(self.toggle_collapse)
 
         self._package_queue = []
+        self._waypoints_count = 0
+        self._waypoints_models = []
+        self.active_model = None
         self.set_content()
 
     def set_content(self):
@@ -119,17 +122,13 @@ class FoldableToolBar(QWidget):
         self.waypoint_pins = QPushButton("Waypoints")
 
         self.waypoint_pins.setCheckable(True)
+        self.waypoint_pins.clicked.connect(self.record_waypoints)
 
         self.pick_wayp_list = QComboBox()
-        self.pick_wayp_list.addItem("Waypoint - 1")
-        self.pick_wayp_list.addItem("Waypoint - 2")
+        self.pick_wayp_list.currentIndexChanged.connect(self.switch_pick_way)
 
         self.list_view = QListView()
         self.model = QStandardItemModel()  # TODO: Create a signal to know when a box has been created to insert to listview
-        item1 = QStandardItem("Waypoint point - 1\nstuff after")
-        item2 = QStandardItem("Waypoint point - 2")
-        self.model.appendRow(item1)
-        self.model.appendRow(item2)
         self.list_view.setModel(self.model)
 
         # fill the layout
@@ -172,21 +171,19 @@ class FoldableToolBar(QWidget):
         auto_hspin_label_lay.addWidget(self.auto_package_size_spin_box)
         self.auto_spin_box_label_widget = QWidget()
         self.auto_spin_box_label_widget.setLayout(auto_hspin_label_lay)
-
-        lay_a.addWidget(self.auto_spin_box_label_widget)
+        self.current_angle = QLabel("Angle: Table OFF")
+        self.current_angle.setFixedWidth(200)
+        self.current_angle.setFixedHeight(50)
+        #lay_a.addWidget(self.auto_spin_box_label_widget)
         lay_a.addWidget(self.auto_button_w)
         lay_a.addWidget(self.automatic_paths)
+        lay_a.addWidget(self.current_angle)
         lay_a.addWidget(self.automatic_list)
 
         # package tab
         package_lay = QVBoxLayout(package_list)
         package_list_view = QListView()
         self.package_list_model = QStandardItemModel()
-        test_item = QStandardItem(
-            """Starting lane: input 1
-            Package size: 100
-            Order: 1""")
-        self.package_list_model.appendRow(test_item)
         add_package_button_w = QWidget()
         add_package_button_lay = QVBoxLayout()
         # add order
@@ -211,7 +208,7 @@ class FoldableToolBar(QWidget):
         wig_lane = QWidget()
         lay_lane = QHBoxLayout(wig_lane)
         label_lane = QLabel("Starting lane: ")
-        self.input_lane = QLineEdit()
+        self.input_lane = QComboBox()
         lay_lane.addWidget(label_lane)
         lay_lane.addWidget(self.input_lane)
         lay_lane.setSpacing(0)
@@ -220,7 +217,7 @@ class FoldableToolBar(QWidget):
         wig_lane_end = QWidget()
         lay_lane_end = QHBoxLayout(wig_lane_end)
         label_lane_end = QLabel("Ending lane: ")
-        self.output_lane = QLineEdit()
+        self.output_lane = QComboBox()
         lay_lane_end.addWidget(label_lane_end)
         lay_lane_end.addWidget(self.output_lane)
         lay_lane_end.setSpacing(0)
@@ -246,6 +243,24 @@ class FoldableToolBar(QWidget):
         package_lay.addWidget(add_package_button_w)
         self.layout.addWidget(self.tab)
 
+    @property
+    def manual_list_view(self):
+        return self.active_model
+
+    def record_waypoints(self):
+        if not self.waypoint_pins.isChecked():
+            return
+        self._waypoints_models.append(QStandardItemModel())
+        self.pick_wayp_list.addItem(f'Waypoint - {self._waypoints_count+1}')
+        self.pick_wayp_list.setCurrentIndex(self.pick_wayp_list.count()-1)
+        self._waypoints_count += 1
+
+    def switch_pick_way(self):
+        t = self.objectName()
+        index = self.pick_wayp_list.currentIndex()
+        self.active_model = self._waypoints_models[index]
+        self.list_view.setModel(self.active_model)
+
     def insert_item_to_list(self, item, manual=True, path=False):
         if manual and not path:
             self.model.appendRow(QStandardItemModel(item))
@@ -259,8 +274,8 @@ class FoldableToolBar(QWidget):
     def add_package_to_queue(self):
         order = self.input_order.text()
         psize = self.input_size.text()
-        lane = self.input_lane.text()
-        lane_end = self.output_lane.text()
+        lane = self.input_lane.currentText()
+        lane_end = self.output_lane.currentText()
 
         self.input_order.clear()
         self.input_size.clear()
@@ -321,3 +336,11 @@ class FoldableToolBar(QWidget):
     @lane_representation_list.setter
     def lane_representation_list(self, value):
         self._lane_representation_list = value
+
+    @property
+    def package_queue(self):
+        return self._package_queue
+
+    @package_queue.setter
+    def package_queue(self, val: list):
+        self._package_queue = val

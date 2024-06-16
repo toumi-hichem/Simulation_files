@@ -86,6 +86,20 @@ class SFString:
         return f'"{self.val}"'  # .replace('.', '_')
 
 
+class Supervisor:
+    def __init__(self, controller: SFString|str):
+        self._controller = SFString(controller) if isinstance(controller, str) else controller
+        self._core_string = f'''Robot {{
+  name "Supervisor"
+  controller {self._controller.yes_quotes()}
+  supervisor TRUE
+}}
+'''
+
+    def __str__(self):
+        return self._core_string
+
+
 class DistSensor:
     lookuptable = [[0.012, 0, 0], [0.1, 1, 0]]
     lookup_table = [SFVec(lookuptable[0]), SFVec(lookuptable[1])]
@@ -323,6 +337,7 @@ class Conveyor:
             self._speed = Conveyor._max_speed
         elif input_dir.lower() == 'output':
             self._speed = -Conveyor._max_speed
+            self._size.z = 0.2
 
         self._core_string = f'''ConveyorBelt {{
   translation {self._translation}
@@ -330,6 +345,8 @@ class Conveyor:
   name {self._name.yes_quotes()}
   size {self._size}
   speed {self._speed}
+  borderThickness 0.001
+  borderHeight 0
 }}'''
 
     def __str__(self):
@@ -394,7 +411,7 @@ class Header:
     height = 0.101
     wheel_shape = SFString('Celluvoyer_wheel_0_1.dae')
     cylinder_shape = SFString('Celluvoyer_0_1.dae')
-    lane_size = [0.6, 0.2, 0.22]
+    lane_size = [0.6, 0.25, 0.21]
     half_lane = lane_size[0] / 2
 
     def __init__(self, filename, x, y, controller, lane_data):
@@ -408,6 +425,7 @@ class Header:
         self.robot_object = CelluvoyeRobot(x, y, controller)
         body_str = str(self.robot_object)
         conveyor_str = self.create_conveyor()
+        self.sup = Supervisor(controller)
 
         self.orientation = r"orientation -0.5773502691896258 0.5773502691896258 0.5773502691896258 2.0944"
         self.position = r"position 9.967877640690377e-18 2.9618836418051407e-16 1.6417400696059563"
@@ -417,6 +435,7 @@ class Header:
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackground.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/floors/protos/RectangleArena.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/factory/conveyors/protos/ConveyorBelt.proto"
 
 WorldInfo {{
   contactProperties [
@@ -447,6 +466,8 @@ RectangleArena {{
 {conveyor_str}
 
 {body_str} 
+
+{str(self.sup)}
 """
 
     def __str__(self):
@@ -465,18 +486,18 @@ RectangleArena {{
 
             if orientation[0] == 0:
                 if orientation[1] == 1:  # left
-                    translation = [0 - (Header.x_cell_dist * 0.6) - Header.half_lane, webot_cell_translation[1], 0]
+                    translation = [0 - (Header.x_cell_dist * 0.4) - Header.half_lane, webot_cell_translation[1], 0]
                     rotation = [0, 0, 1, 0]
                 else:
-                    translation = [Header.x_cell_dist * (one_lane[9] + 1.2) + Header.half_lane, webot_cell_translation[1], 0]
+                    translation = [Header.x_cell_dist * (one_lane[9] + 0.9) + Header.half_lane, webot_cell_translation[1], 0]
                     rotation = [0, 0, 1, 3.14]
             else:
                 if orientation[0] == -1:  # top
-                    translation = [webot_cell_translation[0], 0 + (Header.y_cell_dist * 0.8) + Header.half_lane, 0]
+                    translation = [webot_cell_translation[0], 0 + (Header.y_cell_dist * 0.55) + Header.half_lane, 0]
                     rotation = [0, 0, -1, 1.56425]
                 else:
                     translation = [webot_cell_translation[0],
-                                   webot_cell_translation[1] - Header.half_lane - Header.y_cell_dist * 0.8, 0]
+                                   webot_cell_translation[1] - Header.half_lane - Header.y_cell_dist * 0.55, 0]
                     rotation = [0, 0, 1, 1.57734]
             t = Conveyor(translation=translation, rotation=rotation, input_dir=input_sir, size=Header.lane_size, name=f"Conveyor_{one_lane[8]}_{one_lane[9]}")
             conv_list.append(t)

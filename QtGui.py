@@ -1,15 +1,10 @@
-import json
 import math
 import os
-import pickle
-import uuid
+import subprocess
 from shared_data import SharedData, shared_mem
-
-# import statsmodels.api as sm
-import win32api
+from loggerClass import logger
 from math import cos, sin, radians
 import numpy as np
-import matplotlib.pyplot as plt
 from PyQt5.uic import loadUi
 from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow, QSizePolicy, QListView, QGraphicsPixmapItem, QComboBox, \
     QProgressBar, QTabWidget, QLineEdit
@@ -36,7 +31,8 @@ from QtUtilities import FoldableToolBar, Package, LaneGraphicRepresentation
 
 class Hexagon(QGraphicsPolygonItem):
     # TODO: option to remake one cell at a time
-    def __init__(self, center_x, center_y, vector_dir=0, show_arrows=True, highligh=0, hex_size=40, i=None, j=None, *__args):
+    def __init__(self, center_x, center_y, vector_dir: list | None = None, show_arrows=True, highligh=0, hex_size=40,
+                 i=None, j=None, arrow_color=None, *__args):
         super().__init__(*__args)  # TODO: set obstacle/highlight/selected priorities
         # Hexagon
         self.i = i
@@ -58,7 +54,7 @@ class Hexagon(QGraphicsPolygonItem):
         self.highlight_brush = QBrush(QColor("lightblue"))
         self.highlight_pen = QPen(QColor("white"))
 
-        self.vector_pen = QPen(QColor("yellow"))
+        self.vector_pen = QPen(QColor(arrow_color))
 
         self.select_brush = QBrush(QColor("orange"))
         self.select_pen = QPen(QColor("white"))
@@ -71,6 +67,12 @@ class Hexagon(QGraphicsPolygonItem):
 
         self.end_brush = QBrush(QColor("red"))
         self.end_pen = QPen(QColor("orange"))
+
+        self.ON_pen = QPen(QColor("light green"))
+        self.ON_brush = QBrush(QColor("light green"))
+
+        self.OFF_pen = QPen(QColor("red"))
+        self.OFF_brush = QBrush(QColor("red"))
 
         # Vectors
         self.vector_length = self.hex_size / 2
@@ -98,11 +100,23 @@ class Hexagon(QGraphicsPolygonItem):
             points.append(QPointF(x, y))
         return QPolygonF(points)
 
+    def __len__(self):
+        return len(self._core)
+
+    def __getitem__(self, index):
+        return self._core[index]
+
+    def __setitem__(self, key, value):
+        self._core[key] = value
+
+    def __delitem__(self, index):
+        del self._core[index]
+
     def style_hex(self):
         self.setPen(self.default_pen)
         self.setBrush(self.default_brush)
 
-    def create_arrow(self, vector_dir=None):
+    def create_arrow___(self, vector_dir=None):
         if (self.i, self.j) in [(3, 4), (4, 4)]:
             self.vector_dir = math.radians(120)
             vector_dir = math.radians(120)
@@ -112,7 +126,6 @@ class Hexagon(QGraphicsPolygonItem):
             self._arrow = []
             self._content = [self, ] + self._arrow
             return None
-        self.style_arrow()
         vec_x_end = self.center_x + self.vector_length * cos(vector_dir)
         vec_y_end = self.center_y + self.vector_length * sin(vector_dir)
         line = QGraphicsLineItem(self.center_x, self.center_y, vec_x_end, vec_y_end)
@@ -131,11 +144,50 @@ class Hexagon(QGraphicsPolygonItem):
         arrow_right.setPen(self.vector_pen)
         self._arrow = [line, arrow_left, arrow_right]
         self._content = [self, ] + self._arrow
-        if (self.i, self.j) in [(3, 4), (4, 4)]:
-            print(f'Creating hex {(self.i, self.j)} with angle: {math.degrees(vector_dir)} vs {math.degrees(self.vector_dir)}')
 
-    def style_arrow(self):
-        self.vector_pen = QPen(QColor("yellow"))
+    def create_arrow(self, vector_dir=None):
+        if not vector_dir:
+            vector_dir = self.vector_dir
+        if not self.show_arrows or vector_dir is None:
+            self._arrow = []
+            self._content = [self, ] + self._arrow
+            return None
+
+        if radians(0) < vector_dir < radians(270):
+            sin_multiplier = 1
+        else:
+            sin_multiplier = 1
+
+        vec_x_end = self.center_x + self.vector_length * math.cos(vector_dir)
+        vec_y_end = self.center_y + self.vector_length * math.sin(
+            vector_dir) * sin_multiplier  # TODO: fix y axis parity
+
+        line = QGraphicsLineItem(self.center_x, self.center_y, vec_x_end, vec_y_end)
+        # Calculate arrow angles
+        arrow_angle1 = vector_dir + math.radians(135)
+        arrow_angle2 = vector_dir - math.radians(135)
+
+        arrow_length = self.vector_length / 2
+
+        arrow_right = QGraphicsLineItem(
+            vec_x_end, vec_y_end,
+            vec_x_end + arrow_length * math.cos(arrow_angle1),
+            vec_y_end + arrow_length * math.sin(arrow_angle1) * sin_multiplier
+        )
+
+        arrow_left = QGraphicsLineItem(
+            vec_x_end, vec_y_end,
+            vec_x_end + arrow_length * math.cos(arrow_angle2),
+            vec_y_end + arrow_length * math.sin(arrow_angle2) * sin_multiplier
+        )
+
+        line.setPen(self.vector_pen)
+        arrow_left.setPen(self.vector_pen)
+        arrow_right.setPen(self.vector_pen)
+
+        self._arrow = [line, arrow_left, arrow_right]
+        self._content = [self, ] + self._arrow
+
 
     def specific_highlight(self, s_e):
         if self.highlight:
@@ -150,6 +202,14 @@ class Hexagon(QGraphicsPolygonItem):
             elif s_e == 'end':
                 self.setBrush(self.end_brush)
                 self.setPen(self.end_pen)
+
+    def turn_on_off(self, state):
+        if state:
+            self.setPen(self.ON_pen)
+            #self.setBrush(self.ON_brush)
+        else:
+            self.setPen(self.OFF_pen)
+            #self.setBrush(self.OFF_brush)
 
     @property
     def content(self):
@@ -381,6 +441,9 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
         self._vector_field: list[list[list[float]]] = []
         self._lane_list = []
         self._content = []
+        self._add_to_vector_field = True
+        self.list_with_dif_color = []
+        self.last_unit_vector = None
 
         # create_stuff
         for i in range(self.rows):
@@ -414,7 +477,7 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
         return self._positions
 
     @property
-    def hexs(self):
+    def hexs(self) -> list[list[Hexagon]]:
         return self._hexs_
 
     @hexs.setter
@@ -492,12 +555,12 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
 
     def create_table(self):
         drawing_path, current_index, future_index = False, 0, 1
-        if self.path:
+        if self.path or self.list_with_dif_color:
             drawing_path = True
-            print("Drawing path")
+            logger.info("Drawing path")
         self._hexs_ = []
         self._vector_field = []
-        print(f"creating table")
+        logger.info(f"creating table")
         for i in range(self.rows):
             self._hexs_.append([])
             self._vector_field.append([])
@@ -507,25 +570,24 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                 if drawing_path:
                     if (i, j) in self.path:
                         current_index = self.path.index((i, j))
+                        t = 0
                         if current_index == len(self.path) - 1:
                             for lane in self.lane_list:
-                                print(F"Checking lane number: {lane.coordinates} vs {i}, {j}")
                                 if lane.i == i and lane.j == j:
-                                    print(f'found the correct lane!!, that"s: {i}, {j}')
                                     x_end, y_end = self.path[current_index]
                                     x_start, y_start = i, j
 
                                     x_end, y_end = self.positions[x_start][y_start]
                                     x_start, y_start = lane.position
 
-                                    t = [x_start - x_end, y_start - y_end]
-                                    vector = np.array(t)
-                                    angle_rad = np.arccos(
-                                        np.dot(vector, [1, 0]) / (np.linalg.norm(vector) * np.linalg.norm([1, 0])))
+                                    t = [x_start - x_end, (y_start - y_end)]
                                     # TODO: You keep tackling runtime mistakes here
+                                    magnitude = np.linalg.norm(t)
+                                    if magnitude == 0:
+                                        raise ValueError("Cannot normalize the zero vector")
+                                    unit_vector = t / magnitude
+                                    angle_rad = math.atan2(unit_vector[1], unit_vector[0])
                                     self.vector_dir = angle_rad
-                                    if (i, j )in self.path:
-                                        print(f"This is the end, {[i, j]}: {self.vector_dir}")
                         else:
 
                             x_end, y_end = self.path[current_index]
@@ -534,39 +596,61 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                             x_end, y_end = self.positions[x_end][y_end]
                             x_start, y_start = self.positions[x_start][y_start]
 
-                            t = [x_start - x_end, y_start - y_end]
-                            vector = np.array(t)
-                            angle_rad = np.arccos(
-                                np.dot(vector, [1, 0]) / (np.linalg.norm(vector) * np.linalg.norm([1, 0])))
-                            # angle_rad = math.atan2(t[1], t[0])
+                            t = [x_start - x_end, (y_start - y_end)]
+                            magnitude = np.linalg.norm(t)
+                            if magnitude == 0:
+                                raise ValueError("Cannot normalize the zero vector")
+                            unit_vector = t / magnitude
+                            angle_rad = math.atan2(unit_vector[1], unit_vector[0])
                             self.vector_dir = angle_rad
-                            if (i, j) in self.path:
-                                print(f"This is part of the path, {[i, j]}: {math.degrees(self.vector_dir)}")
                     else:
                         show_arrows = False
                         self.vector_dir = None
+                    if (i, j) in self.list_with_dif_color and len(self.list_with_dif_color) >= 2: # TODO: Here is the mask cells
+                        try:
+                            x_end, y_end = self.path[0]
+                            x_start, y_start = self.path[1]
+
+                            x_end, y_end = self.positions[x_end][y_end]
+                            x_start, y_start = self.positions[x_start][y_start]
+
+                            t = [x_start - x_end, y_start - y_end]
+                            magnitude = np.linalg.norm(t)
+                            if magnitude == 0:
+                                raise ValueError("Cannot normalize the zero vector")
+                            unit_vector = t / magnitude
+                            self.last_unit_vector = unit_vector
+                        except:
+                            assert self.last_unit_vector is not None, 'No unit vector history'
+                            unit_vector = self.last_unit_vector
+                        angle_rad = math.atan2(unit_vector[1], unit_vector[0])
+                        self.vector_dir = angle_rad
+                        show_arrows = True
+                        logger.info(f'cell: {(i, j)} normalized: {unit_vector}, angle_rad: {angle_rad}')
                 elif self.angle_field is not None:
                     t = self.angle_field[i][j]
                     if t[0] is None:
                         self.vector_dir = None
                     else:
-                        vector = np.array(t)[0:2]
                         # angle_rad = math.atan2(t[1], t[0])
-                        angle_rad = np.arccos(
-                            np.dot(vector, [1, 0]) / (np.linalg.norm(vector) * np.linalg.norm([1, 0])))
-
+                        angle_rad = math.atan2(t[1], t[0])
                         self.vector_dir = angle_rad
-
+                if (i, j) in self.list_with_dif_color:
+                    self.arrow_color = 'red'
+                else:
+                    self.arrow_color = 'yellow'
                 if self.vector_dir:
-                    if (i, j) in [(3, 4), (4, 4)]:
-                        print(f'Creating hex {(i, j)} with angle: {math.degrees(self.vector_dir)}')
+
                     hexagon = Hexagon(self.positions[i][j][0], self.positions[i][j][1], vector_dir=self.vector_dir,
-                                      show_arrows=show_arrows, i=i, j=j)
-                    self._vector_field[i].append([cos(self.vector_dir), sin(self.vector_dir), 0])
+                                      show_arrows=show_arrows, i=i, j=j, arrow_color=self.arrow_color)
+                    if self._add_to_vector_field:
+                        self._vector_field[i].append([cos(self.vector_dir), sin(self.vector_dir), 0])
+                    else:
+                        self._vector_field[i].append([0, 0, 0])
                     self._hexs_[i].append(hexagon)
                 else:
-                    hexagon = Hexagon(self.positions[i][j][0], self.positions[i][j][1], vector_dir=0,
-                                      show_arrows=show_arrows)
+                    hexagon = Hexagon(self.positions[i][j][0], self.positions[i][j][1], vector_dir=None,
+                                      show_arrows=show_arrows, i=i, j=j, arrow_color=self.arrow_color)
                     self._vector_field[i].append([0, 0, 0])
                     self._hexs_[i].append(hexagon)
 
@@ -583,12 +667,12 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
             # y = self.lane_height * orientation[1] + self.positions[edge_cell_index[0]][edge_cell_index[1]][1]
             data_to_create_rep = [edge_cell_index[0], edge_cell_index[1], direction]
             x, y = [0, 0]
+            logger.critical(f'Adding lane to {orientation}')
             if orientation[0] == 0:
-                if orientation[1] == 1:
-                    x = self.positions[edge_cell_index[0]][edge_cell_index[1]][
-                            0] - self.lane_height - self.hex_size * 0.9
+                if orientation[1] == 1: # left
+                    x = self.positions[edge_cell_index[0]][edge_cell_index[1]][0] - self.lane_height - self.hex_size * 0.9
                     y = self.positions[edge_cell_index[0]][edge_cell_index[1]][1] - self.lane_width * 0.5
-                else:
+                else: # right
                     x = self.positions[edge_cell_index[0]][edge_cell_index[1]][0] + self.lane_height * 0.36
                     y = self.positions[edge_cell_index[0]][edge_cell_index[1]][1] - self.lane_width * 0.5
                 rect = Lane(x, y, self.lane_height, self.lane_width, show_arrow=self.show_arrows,
@@ -598,11 +682,11 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                     [x, y, self.lane_height, self.lane_width, self.show_arrows, orientation, self, direction,
                      edge_cell_index[0], edge_cell_index[1]])
             else:
-                if orientation[0] == -1:
+                if orientation[0] == -1: # top
                     x = self.positions[edge_cell_index[0]][edge_cell_index[1]][0] - self.lane_width * 0.5
                     y = self.positions[edge_cell_index[0]][edge_cell_index[1]][
                             1] - self.lane_height - self.hex_size * 0.9
-                else:
+                else: # bottom
                     x = self.positions[edge_cell_index[0]][edge_cell_index[1]][0] - self.lane_width * 0.5
                     y = self.positions[edge_cell_index[0]][edge_cell_index[1]][1] + self.hex_size * 0.9
                 rect = Lane(x, y, self.lane_width, self.lane_height, show_arrow=self.show_arrows,
@@ -685,34 +769,40 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                 self.addToGroup(lane)
         else:
             for item in group:
-                print("Adding lanes from past stuff")
+                logger.info("Adding lanes from past stuff")
                 try:
                     it = Lane(item[0], item[1], item[2], item[3], show_arrow=self.show_arrows, orientation=item[5],
                               parent=item[6], input_dir=item[7], i=item[8], j=item[9])
                     for c in it.content:
                         self.addToGroup(c)
                 except:
-                    print("one hex deleted")
+                    logger.info("one hex deleted")
 
-    def draw_path_arrows(self, cell_list: list[list[int, int]], lane_list):
-        self.path = cell_list
+    def draw_path_arrows(self, cell_list: list[list[int, int]], lane_list, do_not_include_in_field:bool,
+                         list_with_dif_color:list|None=None, arrow_color:str='yellow', dir_vec=None):
+        self.path = cell_list #+ list_with_dif_color
+        self.list_with_dif_color = list_with_dif_color
+        self.directional_vector = dir_vec
         self.lane_list = lane_list
+        self.arrow_color = arrow_color
+        if do_not_include_in_field:
+            self._add_to_vector_field = False
         self.create_table()
-
+        if do_not_include_in_field:
+            self._add_to_vector_field = True
 
 class Table_preview(QWidget):
     json_vec_field_filename = r'C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\dataexchange.pkl'
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.show_ghost_simulation = None
+        self.show_ghost_simulation = True
         self.select_start = None
         self.select_end = None
         self.select_obstacle = None
-        self.foldable_toolbad: FoldableToolBar | None = None
         self._shared_data = {}
         self._initial_info = {}
-        self._foldable_toolbar = None
+        self._foldable_toolbar: FoldableToolBar | None = None
         self.drag_rectangle = None
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self._package_size = 20
@@ -720,10 +810,13 @@ class Table_preview(QWidget):
         self.angle_field = None
         self._package_size = 60
         self._lane_representation_list = []
+        self._last_recorded_velocity_vector_field = None
+        self._last_recorded_velocity_count = 10
 
         # hover constants
         self.hover_with_mouse = False
 
+        self._main: None|QMainWindow = None
         self.parent = self.parent()
         self.parent.objectName()
         self.background_item = None
@@ -750,15 +843,70 @@ class Table_preview(QWidget):
         try:
             self.add_lanes.clicked.connect(self.send_lane_rep_list)
         except Exception as e:
-            print(f"can't connect the send rep list method because of: {e}")
+            logger.info(f"can't connect the send rep list method because of: {e}")
         self.setup_buttons()
         # Variables to track drawing
         self.last_point = None
         self.drawing = False
 
+    def set_main(self, main: QMainWindow):
+        self._main = main
+
+    def setup_ghost(self):
+        # ghost rect ooooooooooooooooooooo
+        self.ghost_rect = QGraphicsRectItem(0, 0, 100, 200)
+        translucent_grey = QColor(128, 128, 128, 128)  # RGBA: Grey color with 50% opacity
+        self.ghost_rect.setBrush(QBrush(translucent_grey))  # TODO: Check #1
+        self.ghost_item = self.scene.addItem(self.ghost_rect)
+        self.ghost_rect.hide()
+
     def send_lane_rep_list(self):
-        print("Lane rep list sent to toolbar")
         self.foldable_toolbar._lane_representation_list = self._lane_representation_list
+
+    @staticmethod
+    def closest_position(positions, target):
+        """
+        Find the closest position to the target from a list of positions.
+
+        :param positions: List of tuples representing positions (e.g., [(x1, y1), (x2, y2), ...])
+        :param target: Tuple representing the target coordinate (e.g., (x, y))
+        :return: Tuple representing the closest position to the target
+        """
+        if not positions:
+            return None
+
+        closest_pos = positions[0]
+        max_distance = Table_preview.euclidean_distance(closest_pos, target)
+
+        for pos in positions[1:]:
+            distance = Table_preview.euclidean_distance(pos, target)
+            if distance > max_distance:
+                closest_pos = pos
+                max_distance = distance
+
+        return closest_pos
+
+    @staticmethod
+    def euclidean_distance(p1, p2):
+        """
+        Calculate the Euclidean distance between two points.
+
+        :param p1: Tuple representing the first point (x1, y1)
+        :param p2: Tuple representing the second point (x2, y2)
+        :return: Euclidean distance between the points
+        """
+        return math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+
+    @staticmethod
+    def is_inside_hex(polygons: list[QPolygonF], rect: QRectF) -> list[tuple[int, int]]:
+        ans = []  # list of polygons inside the rect
+        for i in range(len(polygons)):
+            for j in range(len(polygons[i])):
+                poly = polygons[i][j]
+                for point_indx in range(len(poly)):
+                    if rect.contains(poly[point_indx]) and (i, j) not in ans:
+                        ans.append((i, j))
+        return ans
 
     def update_package_location(self):
         # TODO: Use QTimer, maybe 200ms? More, focus on performance, sim is too slow anyways.
@@ -768,16 +916,140 @@ class Table_preview(QWidget):
             Extracts sensor data from shared memory and updates hexagon highlight state.
             Will be first launched after self.launched_button is triggered.
             """
+        logger.info('Updating')
+        logger.info(f'queue: {self.foldable_toolbar.package_queue}')
+        logger.info(f'lanes: {self.foldable_toolbar.lane_representation_list}')
         self._shared_data = shared_mem.retrieve_data()
-        self.background_item: BackgroundItem
-        self.background_item.hexs = self._shared_data[SharedData.sensor_field]
+        t = self._shared_data[SharedData.sensor_field]
+
+        self.background_item.hexs = t
+        grid = self.background_item.obstacle
+        logger.debug(f'grid before: {grid}')
+        cells_with_packages_on_them = []
+        centers_of_cells_with_packages_on_them = []
+        for i in range(self.table_rows):
+            for j in range(self.table_cols):
+                if t[i][j]:
+                    grid[i][j] = 0
+                    cells_with_packages_on_them.append((i, j))
+                    centers_of_cells_with_packages_on_them.append(self.background_item.positions[i][j])
+        logger.debug(f'grid after: {grid}')
+
+        if centers_of_cells_with_packages_on_them:
+            logger.info(f'The packages are on cells: {cells_with_packages_on_them}')
+            ghost_package_x = sum([i[0] for i in centers_of_cells_with_packages_on_them]) / len(
+                centers_of_cells_with_packages_on_them)
+            ghost_package_y = sum([i[1] for i in centers_of_cells_with_packages_on_them]) / len(
+                centers_of_cells_with_packages_on_them)
+            logger.info(f'the ghost packages has coordinates: {[ghost_package_x, ghost_package_y]}')
+            # TODO: get pacakge size to here
+
+            if self.show_ghost_simulation and self.objectName() == 'table_draw_enabled':
+                self.ghost_rect.show()
+                self.ghost_rect.setRect(ghost_package_x - 50, ghost_package_y - 50, 100, 100)
+            elif self.objectName() == 'table_draw_enabled' and not self.show_ghost_simulation:
+                self.ghost_rect.hide()
+
+
+            d = self.initial_info
+            # TODO: Make it smarter
+            end = d['end']
+            cloest_cor = self.closest_position(positions=centers_of_cells_with_packages_on_them, target=end)
+            d['start'] = cells_with_packages_on_them[centers_of_cells_with_packages_on_them.index(cloest_cor)]
+            start = tuple(d['start'])
+            try:
+                obstacles = d['obstacle']
+            except Exception:
+                obstacles = []
+            # Get the surrounding hexs, and only turn them ON, rest are OFF, not matter what
+            cells_online = self.is_inside_hex(self.background_item.hexs, self.ghost_rect.rect())
+            # TODO: Here are online cells
+            for p in obstacles:
+                grid[p[0]][p[1]] = 1
+
+            self.cell_grid = CelluvoyerGrid(grid)
+            paths = CelluvoyerGrid.a_star_search(self.cell_grid, start, end, max_paths=2)
+            if not paths:
+                self.foldable_toolbar.current_angle.setText("NO PATH FOUND")
+                return
+            #self.background_item.highlight_list(paths[0])
+
+            vector_field = self.background_item.vector_field
+            if len(paths) != 0 and len(paths[0]) >= 2:
+                x_end, y_end = paths[0][0]
+                x_start, y_start = paths[0][1]
+
+                x_end, y_end = self.background_item.positions[x_end][y_end]
+                x_start, y_start = self.background_item.positions[x_start][y_start]
+
+                self.directional_vector = [1*(y_start - y_end), x_start - x_end, 0]
+                magnitude = np.linalg.norm(self.directional_vector)
+                if magnitude == 0:
+                    raise ValueError("Cannot normalize the zero vector")
+                unit_vector = self.directional_vector / magnitude
+                self.directional_vector = unit_vector
+
+            angle_rad = math.atan2(self.directional_vector[1], self.directional_vector[0])
+            # ----------------------------------------------------------------
+            r = 0.04  # Distance from center to wheel (example value)
+
+            # Transformation matrix
+            T2 = np.array([
+                [0, 1, r],
+                [-np.sqrt(3) / 2, -0.5, r],
+                [np.sqrt(3) / 2, -0.5, r]
+            ])
+            T = np.array([
+                [-np.sin(np.pi / 6), np.cos(np.pi / 6), r],
+                [-np.sin(5 * np.pi / 6), np.cos(5 * np.pi / 6), r],
+                [-np.sin(3 * np.pi / 2), np.cos(3 * np.pi / 2), r]
+            ])
+            # Velocity vector
+            V = np.array(self.directional_vector)
+
+            # Calculate wheel speeds
+            wheel_speeds = np.dot(T, V)
+            # ----------------------------------------------------------------
+            to_print = [round(i, 1) for i in wheel_speeds]
+            self.foldable_toolbar.current_angle.setText(f"Angle: {round(math.degrees(angle_rad), 2)}\nengines: {to_print}")
+            angle_rad = math.atan2(self.directional_vector[1], self.directional_vector[0])
+            logger.info(f'The total group direction is: {math.degrees(angle_rad)}')
+            for on_cell_coordinates in cells_online:
+                vector_field[on_cell_coordinates[0]][on_cell_coordinates[1]] = self.directional_vector
+            if not self._main.actionShow_ON_vectors.isChecked():
+                cells_online_arg = []
+            else:
+                cells_online_arg = cells_online
+            self.background_item.draw_path_arrows(paths[0], lane_list=self.lane_representation_list,
+                                                  do_not_include_in_field=True, list_with_dif_color=cells_online_arg, dir_vec=self.directional_vector)  # This will only draw commands, not send them to vec field
+            self.background_item.highlight_point(self.initial_info)
+            if self._main.actionShow_ON_OFF.isChecked():
+                for i in range(len(self.background_item.hexs)):
+                    for j in range(len(self.background_item.hexs[i])):
+                        if (i, j) in cells_online:
+                            self.background_item.hexs[i][j].turn_on_off(True)
+                        else:
+                            self.background_item.hexs[i][j].turn_on_off(False)
+            self._last_recorded_velocity_vector_field = vector_field
+            d = shared_mem.retrieve_data()
+            d[SharedData.vector_field] = vector_field
+            d[SharedData.simulation_information]['rows'] = len(grid)
+            d[SharedData.simulation_information]['cols'] = len(grid[0])
+            shared_mem.store_data(d)
+        elif self._last_recorded_velocity_vector_field and self._last_recorded_velocity_count:
+            self._last_recorded_velocity_count -= 1
+            d = shared_mem.retrieve_data()
+            d[SharedData.vector_field] = self._last_recorded_velocity_vector_field
+            d[SharedData.simulation_information]['rows'] = len(grid)
+            d[SharedData.simulation_information]['cols'] = len(grid[0])
+            shared_mem.store_data(d)
         '''try:
             self._shared_data = shared_mem.retrieve_data()
             self.background_item: BackgroundItem
             self.background_item.hexs = self._shared_data[SharedData.sensor_field]
         except Exception as e:
-            print(f"Simulation is offline because: {e}. We're inside: {self.objectName()}, instance:{self}")
-'''
+            logger.info(f"Simulation is offline because: {e}. We're inside: {self.objectName()}, instance:{self}")
+        '''
 
     def setup_buttons(self):
         layout = QVBoxLayout(self)
@@ -852,9 +1124,15 @@ class Table_preview(QWidget):
         # TODO: Add threshold to gui
         self.angle_field = self.create_vector_field(points, vec_fiel, self.table_rows, self.table_cols)
         self._shared_data[SharedData.vector_field] = self.angle_field
+        if SharedData.simulation_information not in self._shared_data.keys():
+            self._shared_data[SharedData.simulation_information] = {'rows': self.table_rows, 'cols': self.table_cols}
+        else:
+            self._shared_data[SharedData.simulation_information]['rows'] = self.table_rows
+            self._shared_data[SharedData.simulation_information]['cols'] = self.table_cols
+
         shared_mem.store_data(self._shared_data)
+
         self.update_background_scene()  # TODO: Create option not to delete rects + lines
-        self.foldable_toolbar
         # self.scene.addItem(self.background_item)
         # self.view.setScene(self.scene)
 
@@ -922,19 +1200,22 @@ class Table_preview(QWidget):
 
     def setup_background_scene(self, items_from_other_instance=None):
         # self.background_item.clear_all_highlight()
+        logger.info(f"Background scene is updated ----------------------------------------------------------------")
         items = []
         if items_from_other_instance is not None:
             items = items_from_other_instance
         elif self.background_item is not None:
             items = self.background_item.content
         self.scene.clear()
+        # self.angle_field = [[[1.0, 0.0, 0], [0.9685831611286311, 0.2486898871648548, 0], [0.8763066800438636, 0.4817536741017153, 0], [0.7289686274214116, 0.6845471059286887, 0], [0.5358267949789965, 0.8443279255020151, 0]], [[0.30901699437494745, 0.9510565162951535, 0], [0.0627905195293133, 0.9980267284282716, 0], [-0.1873813145857246, 0.9822872507286887, 0], [-0.4257792915650727, 0.9048270524660195, 0], [-0.6374239897486897, 0.7705132427757893, 0]], [[-0.8090169943749473, 0.5877852522924732, 0], [-0.9297764858882515, 0.36812455268467775, 0], [-0.9921147013144779, 0.1253332335643041, 0], [-0.9921147013144779, -0.12533323356430429, 0], [-0.9297764858882515, -0.3681245526846779, 0]], [[-0.8090169943749475, -0.587785252292473, 0], [-0.6374239897486895, -0.7705132427757894, 0], [-0.42577929156507216, -0.9048270524660198, 0], [-0.18738131458572463, -0.9822872507286887, 0], [0.06279051952931372, -0.9980267284282716, 0]], [[0.30901699437494723, -0.9510565162951536, 0], [0.5358267949789968, -0.844327925502015, 0], [0.7289686274214119, -0.6845471059286883, 0], [0.8763066800438636, -0.4817536741017153, 0], [0.9685831611286312, -0.2486898871648545, 0]]]
         self.background_item = BackgroundItem(scene=self.scene, rows=self.table_rows, cols=self.table_cols,
                                               show_arrows=self.show_arrows, angle_field=self.angle_field)
         self.background_item.add_items_to_group(items)
         self.background_item.content = items
         self.scene.addItem(self.background_item)
         self.view.setScene(self.scene)
-        self._initial_info = {}
+        self.setup_ghost()
+        # self._initial_info = {}
         try:
             self._shared_data[SharedData.sensor_field] = [[0 for j in range(self.table_cols)] for i in
                                                           range(self.table_rows)]
@@ -979,6 +1260,7 @@ class Table_preview(QWidget):
                 current_point = self.get_cursor_position_in_view()
                 t = [current_point.x(), current_point.y()]
                 self.coor_list[self.coor_index].append(t)
+                self.foldable_toolbar.manual_list_view.appendRow(QStandardItem(f"Waypoint at: ({round(t[0], 1)}, {round(t[1], 1)})"))
                 # Create and show the rectangle on click
                 self.create_and_show_rectangle(current_point)  # New function
                 if self.last_point is not None:
@@ -1007,19 +1289,23 @@ class Table_preview(QWidget):
                 self._initial_info['obstacle'] = []
             p = self.closest_grid_center(self.background_item.positions, self.get_cursor_position_in_view())[1]
             self._initial_info['obstacle'].append(p)
-        print(self._initial_info)
+        logger.info(self._initial_info)
         self.highlight_after_depress()
 
     def modify_lanes(self, add: bool = True, position: float | None = None, direction: str | None = None):
-        print("function called")
         if add:
             closest_cell_center = \
                 self.closest_grid_center(self.background_item.positions, self.get_cursor_position_in_view())[1]
             data_to_create_rep = self.background_item.modify_lanes(add=True, edge_cell_index=closest_cell_center,
                                                                    position=position, direction=direction)
             t = LaneGraphicRepresentation(*data_to_create_rep, count_for_name=len(self._lane_representation_list) + 1)
+            if 'input' in t.name.lower():
+                self.foldable_toolbar.input_lane.addItem(t.name)
+            elif 'output' in t.name.lower():
+                self.foldable_toolbar.output_lane.addItem(t.name)
+
             self._lane_representation_list.append(t)
-            print(f'We added lane {str(t)}')
+            logger.info(f'We added lane {str(t)}')
 
         elif not add:
             mouse_pos = self.get_cursor_position_in_view()
@@ -1122,7 +1408,7 @@ class Table_preview(QWidget):
     def update_and_draw_rectangle(self):  # obsolete
         # TODO: solve rect offset issues
         return None  # TODO: Fix the offset and delete this later
-        cursor_pos = self.get_cursor_position_in_view()
+        cursor_pos: QPointF = self.get_cursor_position_in_view()
         if self.drag_rectangle is None:
             self.drag_rectangle = QGraphicsRectItem(cursor_pos.x(), cursor_pos.y(), self._package_size,
                                                     self._package_size)  # Set width and height
@@ -1161,7 +1447,6 @@ class Table_preview(QWidget):
         return self._package_size
 
     def set_foldable_bar(self, val):
-        print(F"Foldable toolbar")
         self.foldable_toolbar: FoldableToolBar = val
 
     def show_ghost(self, button: QPushButton):
@@ -1172,7 +1457,7 @@ class Table_preview(QWidget):
 
 
 class MainUi(QMainWindow):
-    sensor_refresh_rate = 200  # ms
+    sensor_refresh_rate = 1000  # ms
 
     def __init__(self, robot: Robot, *args, **kwargs):
         super(MainUi, self).__init__(*args, **kwargs)
@@ -1198,6 +1483,9 @@ class MainUi(QMainWindow):
         self.stackedWidget_3000.setCurrentIndex(1)
         self.table_preview: Table_preview = self.findChild(QWidget, 'show_table')
         self.table_preview_2: Table_preview = self.findChild(QWidget, 'table_draw_enabled')
+        self.table_preview.set_main(self)
+        self.table_preview_2.set_main(self)
+
         self.foldable_toolbar = self.findChild(QWidget, 'FoldableToolBar')
         self.table_preview.foldable_toolbar = self.foldable_toolbar
         self.table_preview_2.foldable_toolbar = self.foldable_toolbar
@@ -1246,7 +1534,6 @@ class MainUi(QMainWindow):
 
         self.actionShow_ghost.triggered.connect(lambda: self.table_preview_2.show_ghost(self.actionShow_ghost))
 
-
     def switch_menu(self, action=None):
         if not action:
             if self.stackedWidget_3000.currentIndex() == 1:
@@ -1287,7 +1574,7 @@ class MainUi(QMainWindow):
     def reload_dicts(self):
         x = self.row_count.value()
         y = self.col_count.value()
-        print("Created the dictionary")
+        logger.info("Created the dictionary")
         data = {SharedData.sensor_field: [[0 for i in range(x)] for j in range(y)],
                 SharedData.vector_field: [[[0, 0, 0] for i in range(x)] for j in range(y)],
                 SharedData.simulation_information: {'rows': x, 'cols': y}}
@@ -1333,7 +1620,7 @@ class MainUi(QMainWindow):
             self.robot.controller = self.controller_name.text()
             self.robot.lane_data = self.table_preview.background_item.content
         except Exception as e:
-            print(e)
+            logger.info(e)
         t = 0
         while t <= 100:
             t += 1
@@ -1365,6 +1652,9 @@ class MainUi(QMainWindow):
         #   - Starts monitoring sensor data and updates cell highlight state
 
         # TODO: For automatic pathing:
+        logger.debug(f"Launched the supervisor")
+        #subprocess.call(['python', r'C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\cell_controller_0_3\cell_controller_0_3.py'])
+        logger.info('Launching')
         if button.isChecked() and self.tab_area.currentIndex() == 0:
             # when launching is checked the manual tab widget is active
             self.get_sensor_data_timer = QTimer()
@@ -1383,6 +1673,15 @@ class MainUi(QMainWindow):
             self.calculate_automatic_pathing(True)
         elif not button.isChecked() and self.tab_area.currentIndex() == 1:
             self.get_sensor_data_timer.stop()
+        elif button.isChecked() and self.tab_area.currentIndex() == 2:
+            # When launch in automatic mode
+            self.get_sensor_data_timer = QTimer()
+            self.get_sensor_data_timer.setInterval(MainUi.sensor_refresh_rate)
+            self.get_sensor_data_timer.timeout.connect(self.table_preview_2.update_package_location)
+            self.get_sensor_data_timer.start()
+            self.calculate_automatic_pathing(True)
+        elif not button.isChecked() and self.tab_area.currentIndex() == 2:
+            self.get_sensor_data_timer.stop()
 
     def calculate_automatic_pathing(self, enabled):
         if enabled:
@@ -1393,9 +1692,10 @@ class MainUi(QMainWindow):
             # Get start and end positions
             d = self.table_preview_2.initial_info
             if 'end' not in d.keys() and 'start' not in d.keys():
-                print(F"select start & end")
+                logger.info(F"select start & end")
                 return None
-            start = d['start']
+
+            '''start = d['start']
             end = d['end']
 
             # do the calculation
@@ -1404,20 +1704,20 @@ class MainUi(QMainWindow):
             assert start in paths[0] and end in paths[0], "start and end not in paths"
             self.table_preview_2.background_item.highlight_list(paths[0])
             t = self.table_preview_2.initial_info
-            print(f"The final path is: {paths}")
+            logger.info(f"The final path is: {paths}")
             # show arrows + highlight:
             # TODO: Inside this, create vector field and return it then save it to shared mem
             self.table_preview_2.background_item.draw_path_arrows(paths[0],
                                                                   lane_list=self.table_preview.lane_representation_list)
             self.table_preview_2.background_item.highlight_point(t)
             # send the command
-            print("Sent command to simulation")
+            logger.info("Sent command to simulation")
             d = shared_mem.retrieve_data()
             d[SharedData.vector_field] = self.table_preview_2.background_item.vector_field
             d[SharedData.simulation_information]['rows'] = len(grid)
             d[SharedData.simulation_information]['cols'] = len(grid[0])
             shared_mem.store_data(d)
-            print(f"After creating the commands, this is the data: {d}")
+            logger.info(f"After creating the commands, this is the data: {d}")'''
             # wait for feedback
 
     @property
