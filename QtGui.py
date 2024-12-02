@@ -629,12 +629,24 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                         logger.info(f'cell: {(i, j)} normalized: {unit_vector}, angle_rad: {angle_rad}')
                 elif self.angle_field is not None:
                     t = self.angle_field[i][j]
+                    angel_vec = [t[1], t[0], 0]
                     if t[0] is None:
                         self.vector_dir = None
                     else:
-                        # angle_rad = math.atan2(t[1], t[0])
-                        angle_rad = math.atan2(t[1], t[0])
-                        self.vector_dir = angle_rad
+                        '''                        # angle_rad = math.atan2(t[1], t[0])
+                        theta = math.radians(30)
+                        R = self.rotation_matrix(theta)
+                        rotated_vec = [0, 0, 0]
+                        for i in range(2):
+                            # Loop through elements in each row
+                            for j in range(2):
+                                # Perform element-wise multiplication and summation
+                                rotated_vec[i] += R[i][j] * angel_vec[j]
+                        angle_rad = math.atan2(rotated_vec[0], rotated_vec[1])
+                        logger.info(F'Original angel: {math.degrees( math.atan2(angel_vec[0], angel_vec[1]))} and {angel_vec}')
+                        logger.info(F'rotated angel: {math.degrees( math.atan2(rotated_vec[0], rotated_vec[1]))} and {rotated_vec}')
+'''
+                        self.vector_dir = math.atan2(angel_vec[0], angel_vec[1])#angle_rad
                 if (i, j) in self.list_with_dif_color:
                     self.arrow_color = 'red'
                 else:
@@ -656,6 +668,16 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
 
         self.path = []
         self.add_items_to_group()
+
+    @staticmethod
+    def rotation_matrix(theta):
+        """
+        This function creates a 2x2 rotation matrix for a given angle (theta in radians).
+        """
+        cos_theta = math.cos(theta)
+        sin_theta = math.sin(theta)
+        return [[cos_theta, -sin_theta],
+                [sin_theta, cos_theta]]
 
     def modify_lanes(self, add: bool, edge_cell_index: list, position: list, direction: str):
         if add:
@@ -1125,10 +1147,13 @@ class Table_preview(QWidget):
         self.angle_field = self.create_vector_field(points, vec_fiel, self.table_rows, self.table_cols)
         self._shared_data[SharedData.vector_field] = self.angle_field
         if SharedData.simulation_information not in self._shared_data.keys():
-            self._shared_data[SharedData.simulation_information] = {'rows': self.table_rows, 'cols': self.table_cols}
+            self._shared_data[SharedData.simulation_information] = {'rows': self.table_rows, 'cols': self.table_cols,
+                                                                    'mode': 'manual'}
         else:
             self._shared_data[SharedData.simulation_information]['rows'] = self.table_rows
             self._shared_data[SharedData.simulation_information]['cols'] = self.table_cols
+            self._shared_data[SharedData.simulation_information]['mode'] = 'manual'
+
 
         shared_mem.store_data(self._shared_data)
 
@@ -1653,6 +1678,10 @@ class MainUi(QMainWindow):
 
         # TODO: For automatic pathing:
         logger.debug(f"Launched the supervisor")
+        self._shared_data = shared_mem.retrieve_data()
+        self._shared_data[SharedData.simulation_information]['mode'] = 'auto'
+        logger.info('AUTO mode')
+        shared_mem.store_data(self._shared_data)
         #subprocess.call(['python', r'C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\cell_controller_0_3\cell_controller_0_3.py'])
         logger.info('Launching')
         if button.isChecked() and self.tab_area.currentIndex() == 0:

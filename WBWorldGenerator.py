@@ -549,7 +549,7 @@ class Robot:
 
     def set_default_value(self):
         self._default_values['filename'] = self.filename
-        self._default_values['controller'] = '<extern>'
+        self._default_values['controller'] = 'cell_controller_0_3'
         self._default_values['location'] = {'x': self.translation.x, 'y': self.translation.y, 'z': self.translation.z}
         self._default_values['rotation'] = {'x': self.rotation.x, 'y': self.rotation.y, 'z': self.rotation.z,
                                             'o': self.rotation.o}
@@ -623,7 +623,7 @@ class Robot:
 
 
 if __name__ == '__main__':
-    r = Robot(translation=[0, 0, 0.1], dimensions=[5, 5], rotation=[0, 0, 1, 0], controller=r'<extern>')
+    r = Robot(translation=[0, 0, 0.1], dimensions=[5, 5], rotation=[0, 0, 1, 0], controller=r'cell_controller_0_3')
     # r.create_file()
     # print(r)
     print(r.translation.x)
