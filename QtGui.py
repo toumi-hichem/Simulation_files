@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsView, QVBoxL
 from PyQt5.QtGui import QBrush, QPen, QPolygonF, QPainter, QImage, QPixmap, QPainterPath, QColor, QStandardItem, \
     QStandardItemModel, QCursor, QGuiApplication, QTransform
 from PyQt5.QtCore import Qt, QPointF, QLineF, QEvent, QRectF, pyqtSlot, QPropertyAnimation, QAbstractAnimation, \
-    QEasingCurve, QTimer, QPoint
+    QEasingCurve, QTimer, QPoint, QObject
 from PathFinding import CelluvoyerGrid
 from QtUtilities import FoldableToolBar, Package, LaneGraphicRepresentation
 
@@ -837,20 +837,30 @@ class Table_preview(QWidget):
         # TODO: get row_count and _y from MainUi and save then as self.cols etc then run the entire update to the preview
         # self.update_button.clicked.connect(self.update_background_scene)
         objname = self.objectName()
-        self.add_lanes = self.parent.findChild(QPushButton, 'add_lanes')
-        self.remove_lanes = self.parent.findChild(QPushButton, 'remove_lanes')
-        self.add_lanes_in_out = self.parent.findChild(QComboBox, 'add_lanes_in_out')
+        prntname = self.parent.objectName()
+
+        def print_parents(widget):
+            current = widget
+            while current is not None:
+                print(f"{current.__class__.__name__}: {current.objectName() or '<unnamed>'}")
+                current = current.parent()
+        print_parents(self.view)
+
+
+
+    def set_main(self, main: QMainWindow):
+        self._main = main
+        self.add_lanes = self._main.findChild(QPushButton, 'add_lanes')
+        self.remove_lanes = self._main.findChild(QPushButton, 'remove_lanes')
+        self.add_lanes_in_out = self._main.findChild(QComboBox, 'add_lanes_in_out')
         try:
             self.add_lanes.clicked.connect(self.send_lane_rep_list)
         except Exception as e:
-            logger.info(f"can't connect the send rep list method because of: {e}")
+            logger.error(f"can't connect the send rep list method because of: {e}")
         self.setup_buttons()
         # Variables to track drawing
         self.last_point = None
         self.drawing = False
-
-    def set_main(self, main: QMainWindow):
-        self._main = main
 
     def setup_ghost(self):
         # ghost rect ooooooooooooooooooooo
@@ -1125,10 +1135,15 @@ class Table_preview(QWidget):
         self.angle_field = self.create_vector_field(points, vec_fiel, self.table_rows, self.table_cols)
         self._shared_data[SharedData.vector_field] = self.angle_field
         if SharedData.simulation_information not in self._shared_data.keys():
-            self._shared_data[SharedData.simulation_information] = {'rows': self.table_rows, 'cols': self.table_cols}
+            self._shared_data[SharedData.simulation_information] = {
+                'rows': self.table_rows,
+                'cols': self.table_cols,
+                'mode': 'auto'
+            }
         else:
             self._shared_data[SharedData.simulation_information]['rows'] = self.table_rows
             self._shared_data[SharedData.simulation_information]['cols'] = self.table_cols
+            self._shared_data[SharedData.simulation_information]['mode'] = 'auto'
 
         shared_mem.store_data(self._shared_data)
 
@@ -1309,7 +1324,7 @@ class Table_preview(QWidget):
 
         elif not add:
             mouse_pos = self.get_cursor_position_in_view()
-            self.find_closest_rect_in_group(self.background_item, mouse_pos, )  # TODO: fix, good luck though
+            self.find_closest_rect_in_group(self.background_item, mouse_pos, QRectF(mouse_pos.x(), mouse_pos.y(), 60, 60))  # TODO: fix, good luck though
             #   self.background_item.modify_lanes(add=True, edge_cell_index=closest_cell_center, position=position, direction=direction)
 
     @staticmethod
@@ -1330,7 +1345,7 @@ class Table_preview(QWidget):
         closest_distance = float("inf")
 
         # Loop through child items of the group
-        for child in group.children():
+        for child in group.childItems():
             if not isinstance(child, QGraphicsRectItem):
                 continue  # Skip non-rect items
 
@@ -1341,7 +1356,10 @@ class Table_preview(QWidget):
 
             # Calculate distance between mouse and item center
             item_center = item_rect.center()
-            distance = mouse_pos.distanceToPoint(item_center)
+
+            distance = math.sqrt((mouse_pos.x() - item_center.x()) ** 2 + (mouse_pos.y() - item_center.y()) ** 2)
+
+            # distance = mouse_pos.distanceToPoint(item_center)
 
             # Update closest item if closer distance is found
             if distance < closest_distance:
@@ -1349,9 +1367,11 @@ class Table_preview(QWidget):
                 closest_item = child
 
                 # Delete the closest item if found
-            if closest_item is not None:
-                group.removeItemGroup(closest_item)  # Remove from group
-                del closest_item  # Delete the item object
+        if closest_item is not None:
+            group.removeFromGroup(closest_item)
+            closest_item.setParentItem(None)
+            # group.removeItemGroup(closest_item)  # Remove from group
+            del closest_item  # Delete the item object
 
     def get_cursor_position_in_view(self):
         # cursor_pos = win32api.GetCursorPos()
@@ -1577,7 +1597,7 @@ class MainUi(QMainWindow):
         logger.info("Created the dictionary")
         data = {SharedData.sensor_field: [[0 for i in range(x)] for j in range(y)],
                 SharedData.vector_field: [[[0, 0, 0] for i in range(x)] for j in range(y)],
-                SharedData.simulation_information: {'rows': x, 'cols': y}}
+                SharedData.simulation_information: {'rows': x, 'cols': y, 'mode':'auto'}}
 
         shared_mem.store_data(data=data)
 
@@ -1617,10 +1637,11 @@ class MainUi(QMainWindow):
             self.robot.dimensions.y = self.col_count.value()
 
             self.robot.filename = self.filename_name.text()
+            logger.debug(f'The filename inputted is: {self.filename_name.text()}')
             self.robot.controller = self.controller_name.text()
             self.robot.lane_data = self.table_preview.background_item.content
         except Exception as e:
-            logger.info(e)
+            logger.critical(e)
         t = 0
         while t <= 100:
             t += 1

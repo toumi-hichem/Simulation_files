@@ -1,0 +1,4448 @@
+#VRML_SIM R2023b utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/floors/protos/RectangleArena.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/factory/containers/protos/CardboardBox.proto"
+
+WorldInfo {
+  contactProperties [
+    ContactProperties {
+      material1 "InteriorWheelMat"
+      coulombFriction [
+        0, 2, 0
+      ]
+      frictionRotation -0.785398 0
+      bounce 0
+      forceDependentSlip [
+        10, 0
+      ]
+    }
+  ]
+}
+Viewpoint {
+  orientation -0.5773502691896258 0.5773502691896258 0.5773502691896258 2.0944
+  position 0.5745618866294234 -0.3049843076983011 2.6802040136275282
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  floorSize 3 3
+}
+DEF celluvoyer Robot {
+  children [
+    DEF cell_0_0 Pose {
+      translation 0.087 0 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_0_0_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_0_0_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_0_0_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_0_0_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_0_0_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_0_0_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_0_0_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_0_0_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_0_0_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_0_1 Pose {
+      translation 0.261 0 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_0_1_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_0_1_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_0_1_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_0_1_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_0_1_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_0_1_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_0_1_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_0_1_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_0_1_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_0_2 Pose {
+      translation 0.43499999999999994 0 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_0_2_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_0_2_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_0_2_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_0_2_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_0_2_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_0_2_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_0_2_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_0_2_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_0_2_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_0_3 Pose {
+      translation 0.609 0 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_0_3_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_0_3_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_0_3_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_0_3_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_0_3_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_0_3_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_0_3_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_0_3_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_0_3_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_0_4 Pose {
+      translation 0.7829999999999999 0 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_0_4_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_0_4_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_0_4_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_0_4_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_0_4_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_0_4_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_0_4_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_0_4_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_0_4_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_1_0 Pose {
+      translation 0 -0.152 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_1_0_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_1_0_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_1_0_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_1_0_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_1_0_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_1_0_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_1_0_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_1_0_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_1_0_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_1_1 Pose {
+      translation 0.174 -0.152 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_1_1_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_1_1_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_1_1_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_1_1_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_1_1_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_1_1_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_1_1_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_1_1_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_1_1_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_1_2 Pose {
+      translation 0.348 -0.152 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_1_2_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_1_2_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_1_2_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_1_2_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_1_2_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_1_2_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_1_2_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_1_2_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_1_2_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_1_3 Pose {
+      translation 0.522 -0.152 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_1_3_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_1_3_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_1_3_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_1_3_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_1_3_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_1_3_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_1_3_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_1_3_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_1_3_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_1_4 Pose {
+      translation 0.696 -0.152 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_1_4_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_1_4_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_1_4_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_1_4_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_1_4_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_1_4_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_1_4_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_1_4_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_1_4_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_2_0 Pose {
+      translation 0.087 -0.304 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_2_0_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_2_0_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_2_0_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_2_0_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_2_0_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_2_0_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_2_0_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_2_0_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_2_0_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_2_1 Pose {
+      translation 0.261 -0.304 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_2_1_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_2_1_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_2_1_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_2_1_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_2_1_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_2_1_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_2_1_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_2_1_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_2_1_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_2_2 Pose {
+      translation 0.43499999999999994 -0.304 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_2_2_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_2_2_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_2_2_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_2_2_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_2_2_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_2_2_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_2_2_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_2_2_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_2_2_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_2_3 Pose {
+      translation 0.609 -0.304 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_2_3_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_2_3_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_2_3_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_2_3_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_2_3_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_2_3_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_2_3_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_2_3_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_2_3_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_2_4 Pose {
+      translation 0.7829999999999999 -0.304 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_2_4_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_2_4_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_2_4_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_2_4_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_2_4_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_2_4_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_2_4_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_2_4_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_2_4_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_3_0 Pose {
+      translation 0 -0.45599999999999996 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_3_0_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_3_0_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_3_0_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_3_0_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_3_0_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_3_0_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_3_0_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_3_0_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_3_0_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_3_1 Pose {
+      translation 0.174 -0.45599999999999996 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_3_1_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_3_1_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_3_1_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_3_1_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_3_1_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_3_1_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_3_1_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_3_1_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_3_1_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_3_2 Pose {
+      translation 0.348 -0.45599999999999996 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_3_2_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_3_2_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_3_2_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_3_2_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_3_2_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_3_2_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_3_2_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_3_2_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_3_2_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_3_3 Pose {
+      translation 0.522 -0.45599999999999996 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_3_3_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_3_3_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_3_3_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_3_3_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_3_3_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_3_3_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_3_3_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_3_3_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_3_3_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_3_4 Pose {
+      translation 0.696 -0.45599999999999996 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_3_4_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_3_4_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_3_4_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_3_4_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_3_4_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_3_4_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_3_4_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_3_4_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_3_4_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_4_0 Pose {
+      translation 0.087 -0.608 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_4_0_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_4_0_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_4_0_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_4_0_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_4_0_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_4_0_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_4_0_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_4_0_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_4_0_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_4_1 Pose {
+      translation 0.261 -0.608 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_4_1_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_4_1_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_4_1_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_4_1_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_4_1_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_4_1_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_4_1_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_4_1_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_4_1_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_4_2 Pose {
+      translation 0.43499999999999994 -0.608 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_4_2_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_4_2_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_4_2_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_4_2_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_4_2_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_4_2_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_4_2_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_4_2_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_4_2_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_4_3 Pose {
+      translation 0.609 -0.608 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_4_3_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_4_3_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_4_3_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_4_3_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_4_3_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_4_3_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_4_3_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_4_3_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_4_3_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+    DEF cell_4_4 Pose {
+      translation 0.7829999999999999 -0.608 0.101
+      children [
+        Solid {
+          children [
+            Group {
+              children [
+                DEF cell_4_4_dist_0 DistanceSensor {
+                  translation 0 0 0.1
+                  rotation 0 1 0 -1.5708003061004252
+                  name "cell_4_4_dist_0"
+                  lookupTable [
+                    0.012 0 0
+                    0.1 1 0
+                  ]
+                }
+                CadShape {
+                  url [
+                    "../assets/Celluvoyer_0_1.dae"
+                  ]
+                }
+              ]
+            }
+            DEF V1 Pose {
+              translation 0.04 0 0.085
+              rotation 0 0 1 1.5707996938995747
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_4_4_m1"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 2.7476575974040475e-15 4.710270166978368e-16 1.5707993877991355
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_4_4_wheel_1"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V2 Pose {
+              translation -0.02 0.034 0.085
+              rotation 0 0 1 -2.6179953071795863
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_4_4_m2"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 -8.635471348454006e-16 -7.850510172479671e-16 1.5707993877991429
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_4_4_wheel_2"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF V3 Pose {
+              translation -0.02 -0.034 0.085
+              rotation 0 0 1 -0.523595307179586
+              children [
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 0 1 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "cell_4_4_m3"
+                    }
+                  ]
+                  endPoint Solid {
+                    rotation -1 1.5700900556594532e-16 8.635495306126993e-16 1.5707993877991393
+                    children [
+                      Group {
+                        children [
+                          DEF wheel_shape Shape {
+                            appearance PBRAppearance {
+                              transparency 1
+                            }
+                            geometry Cylinder {
+                              height 0.025
+                              radius 0.027
+                            }
+                          }
+                          CadShape {
+                            url [
+                              "../assets/Celluvoyer_wheel_0_1.dae"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                    name "cell_4_4_wheel_3"
+                    contactMaterial "InteriorWheelMat"
+                    boundingObject USE wheel_shape
+                    physics Physics {
+                    }
+                  }
+                }
+              ]
+            }
+            DEF hexagon_shape Shape {
+              appearance PBRAppearance {
+                baseColor 1 0.333333 1
+                transparency 1
+              }
+              geometry Cylinder {
+                bottom FALSE
+                height 0.2
+                radius 0.09
+                top FALSE
+                subdivision 6
+              }
+            }
+          ]
+          name "cell_4_4_body"
+          boundingObject USE hexagon_shape
+          physics Physics {
+          }
+        }
+      ]
+    }
+  ]
+  name "main_robot"
+  physics Physics {
+  }
+  locked TRUE
+  controller "cell_controller_0_3"
+  synchronization FALSE
+}
+CardboardBox {
+  translation 0.613758 -0.307627 0.3
+  size 0.2 0.2 0.2
+  mass 1
+}

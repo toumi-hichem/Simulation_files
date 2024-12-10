@@ -1,6 +1,11 @@
 # TODO: change floor size with table size
 # TODO: dynamically add input and output conveyors
+import os
 
+from loggerClass import logger
+
+CELL_SHAPE_FILENAME = "../assets/Celluvoyer_0_1.dae"
+WHEEL_SHAPE_FILENAME = "../assets/Celluvoyer_wheel_0_1.dae"
 
 class SFVec:
     # TODO: sfvec to sfvec assignment, same for SFString
@@ -409,8 +414,8 @@ class Header:
     x_cell_dist = 0.174  # TODO: turn into dynamically modified straight from the gui.
     y_cell_dist = 0.152
     height = 0.101
-    wheel_shape = SFString('Celluvoyer_wheel_0_1.dae')
-    cylinder_shape = SFString('Celluvoyer_0_1.dae')
+    wheel_shape = SFString(WHEEL_SHAPE_FILENAME)
+    cylinder_shape = SFString(CELL_SHAPE_FILENAME)
     lane_size = [0.6, 0.25, 0.21]
     half_lane = lane_size[0] / 2
 
@@ -516,6 +521,7 @@ class Robot:
             assert dimensions[0] >= 1 and dimensions[1] >= 1, "Both dimensions must be more than one at the same time"
 
         self.header = None
+        self._filename = None
         self._translation = SFVec(translation)
         self._rotation = SFVec(rotation)
         self.description = description
@@ -524,9 +530,11 @@ class Robot:
 
         self._dimensions = SFVec(dimensions)
 
-        self._filename = "celluvoyer_table_0_3"
-        self.read_filename = 'C:\\Users\\toupa\\Desktop\\ESE - S1\\PFE\\3D\\New folder\\protos\\celluvoyer0_1.proto'
-        self.write_filename = f"C:\\Users\\toupa\\Desktop\\ESE - S1\\PFE\\3D\\New folder\\worlds\\{self.filename}.wbt"
+        # TODO: FIX THIS: self._filename = "celluvoyer_table_0_3"
+        # 'C:\\Users\\toupa\\Desktop\\ESE - S1\\PFE\\3D\\New folder\\protos\\celluvoyer0_1.proto'
+        self.read_filename = fr'{os.path.realpath(os.path.dirname(__file__))}\Webot world\worlds\{self.filename}'
+        self.write_filename =fr'{os.path.realpath(os.path.dirname(__file__))}\Webot world\worlds\{self.filename}.wbt'
+        # f"C:\\Users\\toupa\\Desktop\\ESE - S1\\PFE\\3D\\New folder\\world\\{self.filename}.wbt"
 
         self.translation_list = []
         self.name_list = []
@@ -542,7 +550,7 @@ class Robot:
 
     def create_file(self):
         self.update_data()
-        self.write_filename = f"C:\\Users\\toupa\\Desktop\\ESE - S1\\PFE\\3D\\New folder\\worlds\\{self.filename}.wbt"
+        # self.write_filename = f"C:\\Users\\toupa\\Desktop\\ESE - S1\\PFE\\3D\\New folder\\world\\{self.filename}.wbt"
         print(f"file at: {self.write_filename}")
         with open(self.write_filename, 'w') as f:
             f.write(str(self))
@@ -554,8 +562,8 @@ class Robot:
         self._default_values['rotation'] = {'x': self.rotation.x, 'y': self.rotation.y, 'z': self.rotation.z,
                                             'o': self.rotation.o}
         self._default_values['dimensions'] = {'x': self.dimensions.x, 'y': self.dimensions.y}
-        self._default_values['graphics'] = {'chassis': SFString('Celluvoyer_0_1.dae'),
-                                            'wheel': SFString('Celluvoyer_wheel_0_1.dae')}
+        self._default_values['graphics'] = {'chassis': SFString(CELL_SHAPE_FILENAME),
+                                            'wheel': SFString(WHEEL_SHAPE_FILENAME)}
         self._default_values['cwd'] = r'C:\Users\toupa\Desktop\ESE - S1\PFE\Simulation_files'
 
         # TODO: save the state of the last inputted filename, pickle, or a sitting file or use native PyQt settings
@@ -571,6 +579,11 @@ class Robot:
     @filename.setter
     def filename(self, val):
         self._filename = SFString(val, add_quotes=True)
+        self.change_filenames()
+
+    def change_filenames(self):
+        self.read_filename = fr'{os.path.realpath(os.path.dirname(__file__))}\Webot world\worlds\{self.filename}'
+        self.write_filename = fr'{os.path.realpath(os.path.dirname(__file__))}\Webot world\worlds\{self.filename}.wbt'
 
     @property
     def translation(self):

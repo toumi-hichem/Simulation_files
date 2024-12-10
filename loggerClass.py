@@ -13,8 +13,8 @@ DEFAULT_LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'standard': {
-            'format': '%(asctime)s %(levelname)s: %(message)s',
-            'datefmt': '%Y-%m-%d %H:%M:%S',
+            'format': '%(asctime)s | %(filename)s | %(levelname)s | %(lineno)d: %(message)s',
+            'datefmt': '%H:%M:%S',
         },
         'simple': {
             'format': '%(message)s',
@@ -50,3 +50,4 @@ DEFAULT_LOGGING = {
 
 logging.config.dictConfig(DEFAULT_LOGGING)
 logger = logging.getLogger(__name__)
+logger.info(f"Logging files at: {os.path.realpath(LOGFILE)}")
