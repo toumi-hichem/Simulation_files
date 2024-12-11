@@ -1,13 +1,15 @@
 import math
 import os
 import subprocess
+from typing import Tuple
+
 from shared_data import SharedData, shared_mem
 from loggerClass import logger
 from math import cos, sin, radians
 import numpy as np
 from PyQt5.uic import loadUi
 from PyQt5.QtWidgets import QWidget, QApplication, QMainWindow, QSizePolicy, QListView, QGraphicsPixmapItem, QComboBox, \
-    QProgressBar, QTabWidget, QLineEdit
+    QProgressBar, QTabWidget, QLineEdit, QGraphicsItem
 import sys
 from WBWorldGenerator import Robot
 from PyQt5.QtWidgets import QGraphicsScene, QGraphicsItem, QGraphicsView, QVBoxLayout, QPushButton, QSpinBox, \
@@ -254,6 +256,9 @@ class Hexagon(QGraphicsPolygonItem):
 
 
 class Lane(QGraphicsRectItem):
+    hex_size = 40
+    lane_width = hex_size * 1.3
+    lane_height = hex_size * 2.5
     def __init__(self, x, y, width, height, show_arrow, orientation, parent, input_dir, i, j, *args):
         super().__init__(x, y, width, height, *args)
         self._arrow = None
@@ -335,12 +340,21 @@ class Lane(QGraphicsRectItem):
                     self.center_y = self.y + arrow_back * 0.9
         self.create_arrow(vector_dir=vector_dir)
 
+    def remove(self):
+        # TODO: finish remove
+        pass
+
+    def get_rect(self):
+        logger.debug(f'We are getting the rect with these info: {self.get_lane_data()}')
+        return QRectF(self.x, self.y, self.lane_width, self.lane_height)
+
     def create_arrow(self, vector_dir=None):
 
         if not self.show_arrows or vector_dir is None:
             self._arrow = []
             self._content = [self, ] + self._arrow
             return None
+
         vec_x_end = self.center_x + self.vector_length * cos(vector_dir)
         vec_y_end = self.center_y + self.vector_length * sin(vector_dir)
         line = QGraphicsLineItem(self.center_x, self.center_y, vec_x_end, vec_y_end)
@@ -767,6 +781,7 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
                         self.addToGroup(item)
             for lane in self._lane_list:
                 self.addToGroup(lane)
+
         else:
             for item in group:
                 logger.info("Adding lanes from past stuff")
@@ -793,6 +808,9 @@ class BackgroundItem(QGraphicsItemGroup):  # QGraphicsPolygonItem
 
 class Table_preview(QWidget):
     json_vec_field_filename = r'C:\Users\toupa\Desktop\ESE - S1\PFE\3D\New folder\controllers\dataexchange.pkl'
+    hex_size = 40
+    lane_width = hex_size * 1.3
+    lane_height = hex_size * 2.5
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -1324,12 +1342,26 @@ class Table_preview(QWidget):
 
         elif not add:
             mouse_pos = self.get_cursor_position_in_view()
-            self.find_closest_rect_in_group(self.background_item, mouse_pos, QRectF(mouse_pos.x(), mouse_pos.y(), 60, 60))  # TODO: fix, good luck though
+            logger.debug(f'Trying to remove rect that is next to mouse in: {mouse_pos}')
+            items_to_remove = self.find_closest_rect_in_group(self.background_item, mouse_pos, None)  # TODO: fix, good luck though
+            for item in items_to_remove:
+                self.background_item.removeFromGroup(item)
+                self.scene.removeItem(item)
+                for one_lane_index in range(len(self._lane_representation_list)):
+                    one_lane = self._lane_representation_list[one_lane_index]
+                    if isinstance(one_lane, LaneGraphicRepresentation):
+                        if one_lane.i == item.j and one_lane.j  == item.j:
+                            self._lane_representation_list.remove(item)
+                            self.foldable_toolbar.lane_representation_list = self._lane_representation_list
+                            self.background_item._lane_list.remove(one_lane)
+                            logger.info(f'_Lane_LIst: {self.background_item._lane_list}')
             #   self.background_item.modify_lanes(add=True, edge_cell_index=closest_cell_center, position=position, direction=direction)
 
-    @staticmethod
-    def find_closest_rect_in_group(group: QGraphicsItemGroup, mouse_pos: QPointF,
-                                   threshold_rect: QRectF) -> QGraphicsRectItem | None:
+
+    def find_closest_rect_in_group(self, group: QGraphicsItemGroup, mouse_pos: QPointF,
+                                   threshold_rect: QRectF) -> tuple[
+                                                                  QGraphicsItem, QGraphicsItem, QGraphicsItem, QGraphicsItem] | \
+                                                              tuple[QGraphicsItem]:
         """
         This function finds the closest QGraphicsRectItem within a rectangular threshold from the mouse position in a QGraphicsItemGroup.
 
@@ -1341,16 +1373,21 @@ class Table_preview(QWidget):
         Returns:
             The closest QGraphicsRectItem within the threshold, or None if no items are found.
         """
-        closest_item: QGraphicsRectItem | None = None
+        threshold_rect = QRectF(mouse_pos.x() - (Table_preview.lane_width / 2), mouse_pos.y() - (Table_preview.lane_height / 2), Table_preview.lane_width, Table_preview.lane_height)
+        closest_item_index = -1
         closest_distance = float("inf")
 
         # Loop through child items of the group
-        for child in group.childItems():
-            if not isinstance(child, QGraphicsRectItem):
+        children = group.childItems()
+        for child_index in range(len(children)):
+            child = children[child_index]
+            if not isinstance(child, Lane): # QGraphicsRectItem):
                 continue  # Skip non-rect items
 
             # Check if item bounding rect intersects the threshold rect
-            item_rect = child.boundingRect().translated(child.pos())
+            item_rect: QRectF = child.get_rect()
+
+            # item_rect = child.boundingRect().translated(child.pos())
             if not item_rect.intersects(threshold_rect):
                 continue  # Skip items outside threshold
 
@@ -1364,14 +1401,19 @@ class Table_preview(QWidget):
             # Update closest item if closer distance is found
             if distance < closest_distance:
                 closest_distance = distance
-                closest_item = child
+                closest_item_index = child_index
 
                 # Delete the closest item if found
-        if closest_item is not None:
-            group.removeFromGroup(closest_item)
-            closest_item.setParentItem(None)
+        if closest_item_index != -1:
+            if self.show_arrows:
+                return (children[closest_item_index], children[closest_item_index + 1],
+                    children[closest_item_index + 2], children[closest_item_index + 3])
+            else:
+                return (children[closest_item_index], )
+            # group.removeFromGroup(closest_item)
+            #closest_item.setParentItem(None)
             # group.removeItemGroup(closest_item)  # Remove from group
-            del closest_item  # Delete the item object
+            # del closest_item  # Delete the item object
 
     def get_cursor_position_in_view(self):
         # cursor_pos = win32api.GetCursorPos()
